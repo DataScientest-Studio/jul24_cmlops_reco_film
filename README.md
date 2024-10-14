@@ -1,5 +1,6 @@
+```
 (base) antoine@AntoineASUS:~/Ml_Ops_Movies_Reco$ tree
-.
+
 ├── LICENSE
 ├── README.md
 ├── app
@@ -146,3 +147,4 @@
     └── visualization
         ├── __init__.py
         └── visualize.py
+```
