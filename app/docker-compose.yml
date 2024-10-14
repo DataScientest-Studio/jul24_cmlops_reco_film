@@ -1,0 +1,105 @@
+services:
+  # Service pour le prétraitement et l'entraînement avec la bibliothèque Surprise
+  model-trainer-predictor:
+    build:
+      context: ./model-trainer-predictor
+      dockerfile: Dockerfile
+    volumes:
+      - /home/antoine/Ml_Ops_Movies_Reco/app/shared_volume/raw:/app/data
+      - /home/antoine/Ml_Ops_Movies_Reco/app/shared_volume/model:/app/model
+    container_name: model_trainer_predictor
+
+  # Service pour MongoDB
+  mongodb:
+    image: mongo:latest
+    volumes:
+      - /home/antoine/Ml_Ops_Movies_Reco/app/shared_volume/mongodb_data:/data/db
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: antoine
+      MONGO_INITDB_ROOT_PASSWORD: pela
+    container_name: mongodb
+    networks:
+      - app
+
+  # Service pour FastAPI
+  fastapi:
+    build:
+      context: ./fastapi
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    volumes:
+      - ./fastapi/app:/app
+      - /home/antoine/Ml_Ops_Movies_Reco/app/shared_volume/raw:/app/raw
+      - /home/antoine/Ml_Ops_Movies_Reco/app/shared_volume/model:/app/model
+      - /home/antoine/Ml_Ops_Movies_Reco/app/shared_volume/user_db:/app/user_db
+    ports:
+      - "8000:8000"
+    restart: always
+    networks:
+      - app
+    container_name: fastapi
+  # Service pour Streamlit
+  streamlit:
+    build:
+      context: ./streamlit
+      dockerfile: Dockerfile
+    ports:
+      - "8501:8501"
+    restart: always
+    networks:
+      - app
+    depends_on:
+      - fastapi
+    container_name: streamlit
+    # Service pour Airflow
+    # airflow:
+    #   image: apache/airflow:2.3.0
+    #   environment:
+    #     - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+    #     - AIRFLOW__CORE__SQL_ALCHEMY_CONN=sqlite:////root/airflow.db
+    #   volumes:
+    #     - ./shared_volume/dags:/opt/airflow/dags
+    #   ports:
+    #     - "8080:8080"
+    #   container_name: airflow
+    #   networks:
+    #   - app
+
+    # Service pour Prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - /home/antoine/Ml_Ops_Movies_Reco/app/shared_volume/logs/prometheus:/var/log/prometheus # Volume pour logs Prometheus
+    ports:
+      - "9090:9090"
+    container_name: prometheus
+    networks:
+      - app
+
+  # Service pour Grafana
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    volumes:
+      - /home/antoine/Ml_Ops_Movies_Reco/app/shared_volume/logs/grafana:/var/lib/grafana/logs
+    container_name: grafana
+    networks:
+      - app
+
+  node-exporter:
+    image: prom/node-exporter
+    container_name: node_exporter
+    restart: unless-stopped
+    ports:
+      - "9100:9100" # Expose le port pour Node Exporter
+    networks:
+      - app
+
+networks:
+  app:
+    driver: bridge

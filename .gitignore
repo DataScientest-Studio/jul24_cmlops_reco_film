@@ -1,4 +1,10 @@
+# Folder
+app/shared_volume/
+src/data/
+
 # Byte-compiled / optimized / DLL files
+
+
 __pycache__/
 *.py[cod]
 
