@@ -1,0 +1,29 @@
+version: '3.9'
+services:
+  api_predict:
+    build:
+      context: .
+      dockerfile: ./api/predict/Dockerfile
+    container_name: api_predict
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./api/predict:/app/predict # TODO remove for production
+    networks:
+      - app_network
+
+  streamlit_app:
+    build:
+      context: ./streamlit_app
+      dockerfile: Dockerfile
+    container_name: streamlit_app
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./streamlit_app:/app # TODO remove for production
+    networks:
+      - app_network
+
+networks:
+  app_network:
+    driver: bridge
