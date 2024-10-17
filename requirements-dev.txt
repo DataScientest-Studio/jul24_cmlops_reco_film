@@ -1,0 +1,3 @@
+-r src/requirements.txt
+-r api/predict/requirements.txt
+-r streamlit_app/requirements.txt
