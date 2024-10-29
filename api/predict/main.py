@@ -7,13 +7,14 @@ import pandas as pd
 app = FastAPI()
 
 # Charger le modèle une seule fois au démarrage de l'application
-with open("models/model.pkl", "rb") as filehandler:
+with open("model.pkl", "rb") as filehandler:
     model = pickle.load(filehandler)
 
 
 def make_predictions(genres, model):
     # genres is a string of 1 and 0, we need to split it into a list of integers
-    genres = [int(genre) for genre in genres]
+    genres = genres.split(",")
+    genres = [float(genre) for genre in genres]
     genres = np.array(genres).reshape(1, -1)
 
     # Add the values to the dataframe with the columns
@@ -46,7 +47,7 @@ def make_predictions(genres, model):
 
     # Select 10 random numbers from each row
     selection = np.array(
-        [np.random.choice(row, size=10, replace=False) for row in indices]
+        [np.random.choice(row, size=12, replace=False) for row in indices]
     )
 
     # Convert the numpy array to a list before returning

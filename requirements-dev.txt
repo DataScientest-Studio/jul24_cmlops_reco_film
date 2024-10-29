@@ -1,3 +1,4 @@
--r src/requirements.txt
+-r ml/src/requirements.txt
 -r api/predict/requirements.txt
--r streamlit_app/requirements.txt
+-r api/data/requirements.txt
+-r streamlit/requirements.txt
