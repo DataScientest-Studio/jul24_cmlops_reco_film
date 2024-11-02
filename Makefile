@@ -1,10 +1,11 @@
-.PHONY: help setup setup-light start stop restart logs-supabase logs-airflow logs-api clean network
+.PHONY: help setup1 setup2 setup-light start stop restart logs-supabase logs-airflow logs-api clean network
 
 # Help command to list all available targets
 help:
 	@echo "Usage: make [target]"
 	@echo "Targets:"
-	@echo "  setup      	- Setup environment, load initial data and build all services"
+	@echo "  setup1      	- Setup environment, load initial data and env variables"
+	@echo "  setup2      	- Setup environment, build all services"
 	@echo "  start      	- Start all services"
 	@echo "  stop       	- Stop all services"
 	@echo "  restart    	- Restart all services"
@@ -16,35 +17,37 @@ help:
 	@echo "  network        - Create the Docker network 'backend'"
 
 # Setup: Setup environment, load initial data and build all services
-setup:
-	@echo "##########################"
+# TODO: gérer le fait que l'on ait pas les posterUrl a ce stade pour le build des features
+setup1:
 	@echo "###### SETUP ENV #########"
-	@echo "##########################"
 	python3 -m venv .venv
 	source .venv/bin/activate
 	pip install -r requirements-dev.txt
-	@echo "##########################"
 	@echo "###### DATA & MODEL ######"
-	@echo "##########################"
 	python ml/src/data/import_raw_data.py
-	python ml/src/features/build_features.py
+	python ml/src/features/build_features.py 
 	python ml/src/models/train_model.py
+	@echo "###### ENV VARIABLES #####"
+	cd supabase/docker && cp .env.example .env
+	cd airflow && cp .env.example .env
+	cp .env.example .env
 	@echo "##########################"
-	@echo "###### BUILD SERVICES ####"
-	@echo "##########################"
+	@echo "Set the desired env variables in the .env file and run 'make setup2'"
+
+setup2:
 	cd supabase/docker && docker compose pull
 	cd airflow && echo -e "AIRFLOW_UID=$(id -u)" >> .env && cd ..
 	cd airflow && docker compose up airflow-init
 	docker compose build
 	@echo "##########################"
-	@echo "##########################"
-	@echo "Run 'make clean-db' to load the data into the database then run 'make start' to start the services"
+	make clean-db
+	@echo "Run 'make start' to start the services"
 
 setup-light:
 	python ml/src/features/build_features.py
 	cd supabase/docker && cp .env.example .env
 	cd supabase/docker && docker compose pull
-	cd airflow && echo -e "AIRFLOW_UID=$(id -u)" >> .env && cd ..
+	cd airflow && cp .env.example .env&& echo -e "AIRFLOW_UID=$(id -u)" >> .env && cd ..
 	cd airflow && docker compose up airflow-init
 	docker compose build
 
