@@ -4,7 +4,7 @@ Si vous en avez besoin je peux vous filer la mienne mais ça prend 2min de la de
 Faut la dans le .env de la racine et dans le .env de airflow.
 
 ### Dans le .env de airflow, faut :
-AIRFLOW_UID=501
+AIRFLOW_UID=
 SUPABASE_URL="http://kong:8000"
 SUPABASE_KEY=(se trouve dans le .env de supabase/docker/.env)
 TMDB_API_TOKEN=
