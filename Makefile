@@ -33,7 +33,7 @@ setup1:
 	cd airflow && cp .env.example .env
 	cp .env.example .env
 	@echo "##########################"
-	@echo "Set the desired env variables in the .env file and run 'make setup2'"
+	@echo "Set the desired env variables in the .env files (supabase/docker/.env, airflow/.env and .env) then run 'make setup2'"
 
 # Setup: Build all services and load data
 setup2: network
