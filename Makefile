@@ -4,8 +4,9 @@
 help:
 	@echo "Usage: make [target]"
 	@echo "Targets:"
-	@echo "  setup1      	- Setup environment, load initial data and env variables"
-	@echo "  setup2      	- Setup environment, build all services"
+	@echo "  setup1      	- Setup environment, load initial data and set .env files based on .env.example"
+	@echo "  setup2      	- Build all services and load data"
+	@echo "  setup-light 	- Build features and all services without loading data"
 	@echo "  start      	- Start all services"
 	@echo "  stop       	- Stop all services"
 	@echo "  restart    	- Restart all services"
@@ -16,7 +17,7 @@ help:
 	@echo "  clean-db       - Delete all data in the database and reload the schema and data"
 	@echo "  network        - Create the Docker network 'backend'"
 
-# Setup: Setup environment, load initial data and build all services
+# Setup: Setup environment, load initial data and set env files based on .env.example	
 # TODO: gérer le fait que l'on ait pas les posterUrl a ce stade pour le build des features
 setup1:
 	@echo "###### SETUP ENV #########"
@@ -34,7 +35,8 @@ setup1:
 	@echo "##########################"
 	@echo "Set the desired env variables in the .env file and run 'make setup2'"
 
-setup2:
+# Setup: Build all services and load data
+setup2: network
 	cd supabase/docker && docker compose pull
 	cd airflow && echo -e "AIRFLOW_UID=$(id -u)" >> .env && cd ..
 	cd airflow && docker compose up airflow-init
@@ -43,13 +45,16 @@ setup2:
 	make clean-db
 	@echo "Run 'make start' to start the services"
 
-setup-light:
+# Setup: Build features and all services without loading data
+setup-light: network
 	python ml/src/features/build_features.py
 	cd supabase/docker && cp .env.example .env
 	cd supabase/docker && docker compose pull
 	cd airflow && cp .env.example .env&& echo -e "AIRFLOW_UID=$(id -u)" >> .env && cd ..
 	cd airflow && docker compose up airflow-init
 	docker compose build
+	@echo "##########################"
+	@echo "Run 'make clean-db' to load the data into the database"
 
 # Start: start all services
 start: network
@@ -69,11 +74,13 @@ stop:
 # Restart: restart all services
 restart: stop start
 
-# Logs: show logs for all services
+# Logs: show logs for supabase, airflow and api
 logs-supabase:
 	docker compose -f supabase/docker/docker-compose.yml logs -f
+
 logs-airflow:
 	docker compose -f airflow/docker-compose.yaml logs -f
+
 logs-api:
 	docker compose logs -f
 
@@ -90,6 +97,8 @@ clean-db: network
 	rm -rf supabase/docker/volumes/db/data/
 	cd supabase/docker && docker compose up -d
 	sleep 5 && python ml/src/data/load_data_in_db.py
+	@echo "##########################"
+	@echo "Run 'make start' to start all the services"
 
 # Network: create the Docker network 'backend'
 network:
