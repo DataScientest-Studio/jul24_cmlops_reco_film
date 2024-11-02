@@ -27,19 +27,26 @@ setup:
 	@echo "###### DATA & MODEL ######"
 	@echo "##########################"
 	python ml/src/data/import_raw_data.py
-	python ml/src/data/make_dataset.py
 	python ml/src/features/build_features.py
 	python ml/src/models/train_model.py
 	@echo "##########################"
 	@echo "###### BUILD SERVICES ####"
 	@echo "##########################"
-	docker compose -f supabase/docker/docker-compose.yml pull
+	cd supabase/docker && docker compose pull
 	cd airflow && echo -e "AIRFLOW_UID=$(id -u)" > .env && cd ..
-	docker compose -f airflow/docker-compose.yaml up airflow-init
+	cd airflow && docker compose up airflow-init
 	docker compose build
 	@echo "##########################"
 	@echo "##########################"
 	@echo "Run 'make clean-db' to load the data into the database then run 'make start' to start the services"
+
+setup-light:
+	python ml/src/features/build_features.py
+	cd supabase/docker && cp .env.example .env
+	cd supabase/docker && docker compose pull
+	cd airflow && echo -e "AIRFLOW_UID=$(id -u)" > .env && cd ..
+	cd airflow && docker compose up airflow-init
+	docker compose build
 
 # Start: start all services
 start: network
@@ -76,10 +83,10 @@ clean:
 
 # Clean-db: delete all data in the database and reload the schema and data
 clean-db: network
-	docker compose -f supabase/docker/docker-compose.yml down -v
+	cd supabase/docker && docker compose down -v
 	rm -rf supabase/docker/volumes/db/data/
-	docker compose -f supabase/docker/docker-compose.yml up -d
-	python ml/src/data/load_data.py
+	cd supabase/docker && docker compose up -d
+	sleep 5 && python ml/src/data/load_data_in_db.py
 
 # Network: create the Docker network 'backend'
 network:

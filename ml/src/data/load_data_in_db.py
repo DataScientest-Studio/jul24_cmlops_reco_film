@@ -45,7 +45,7 @@ def load_data(csv_path, table_name, supabase: Client, expected_types: dict, dtyp
             dtype[col] = "Int64"  # Utiliser le type nullable Int64 de pandas
 
     total_rows = len(pd.read_csv(csv_path))
-    chunksize = 20000
+    chunksize = 5000
     total_chunks = (total_rows // chunksize) + (1 if total_rows % chunksize != 0 else 0)
 
     for chunk in tqdm(
@@ -78,17 +78,12 @@ data_dir = os.path.join(project_root, "data")
 raw_dir = os.path.join(data_dir, "raw")
 processed_dir = os.path.join(data_dir, "processed")
 
-# TODO: Ajouter les tables ratings, tags, links, genome_scores, genome_tags, movie_matrix, user_matrix
 data_config = {
     "tables": {
         "movies": os.path.join(processed_dir, "movies.csv"),
-        # "ratings": os.path.join(raw_dir, "ratings.csv"),
-        # "tags": os.path.join(raw_dir, "tags.csv"),
         "links": os.path.join(raw_dir, "links.csv"),
-        # "genome_scores": os.path.join(raw_dir, "genome-scores.csv"),
-        # "genome_tags": os.path.join(raw_dir, "genome-tags.csv"),
-        "movie_matrix": os.path.join(processed_dir, "movie_matrix.csv"),
-        "user_matrix": os.path.join(processed_dir, "user_matrix.csv"),
+        "users": os.path.join(processed_dir, "user_matrix.csv"),
+        "ratings": os.path.join(raw_dir, "ratings.csv"),
     },
     "expected_types": {
         "movies": {
@@ -96,8 +91,9 @@ data_config = {
             "title": "object",
             "genres": "object",
             "year": "int64",
-            # Supprimer ou commenter la ligne suivante
-            # "posterUrl": "object",
+            "rating": "float64",
+            "numRatings": "int64",
+            "lastRatingTimestamp": "int64",
         },
         "ratings": {
             "userId": "int64",
@@ -105,39 +101,8 @@ data_config = {
             "rating": "float64",
             "timestamp": "int64",
         },
-        "tags": {
-            "userId": "int64",
-            "movieId": "int64",
-            "tag": "object",
-            "timestamp": "int64",
-        },
         "links": {"movieId": "int64", "imdbId": "object", "tmdbId": "object"},
-        "genome_scores": {"movieId": "int64", "tagId": "int64", "relevance": "float64"},
-        "genome_tags": {"tagId": "int64", "tag": "object"},
-        "movie_matrix": {
-            "movieId": "int64",
-            "(no genres listed)": "float64",
-            "Action": "float64",
-            "Adventure": "float64",
-            "Animation": "float64",
-            "Children": "float64",
-            "Comedy": "float64",
-            "Crime": "float64",
-            "Documentary": "float64",
-            "Drama": "float64",
-            "Fantasy": "float64",
-            "Film-Noir": "float64",
-            "Horror": "float64",
-            "IMAX": "float64",
-            "Musical": "float64",
-            "Mystery": "float64",
-            "Romance": "float64",
-            "Sci-Fi": "float64",
-            "Thriller": "float64",
-            "War": "float64",
-            "Western": "float64",
-        },
-        "user_matrix": {
+        "users": {
             "userId": "int64",
             "(no genres listed)": "float64",
             "Action": "float64",

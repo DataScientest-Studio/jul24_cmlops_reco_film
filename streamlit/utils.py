@@ -39,9 +39,9 @@ async def get_movie_info_async(movie_id, tmdb_id):
 
 
 async def display_movie_info_grid(movies_info):
-    cols = st.columns(6)
+    cols = st.columns(5)
     for idx, movie_info in enumerate(movies_info):
-        with cols[idx % 6]:  # Utiliser toutes les colonnes de 0 à 3
+        with cols[idx % 5]:  # Utiliser toutes les colonnes de 0 à 3
             html_content = f"""
             <div class="movie-container">
                 <div class="movie-tile">
