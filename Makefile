@@ -44,7 +44,7 @@ setup-light:
 	python ml/src/features/build_features.py
 	cd supabase/docker && cp .env.example .env
 	cd supabase/docker && docker compose pull
-	cd airflow && echo -e "AIRFLOW_UID=$(id -u)" > .env && cd ..
+	cd airflow && echo -e "AIRFLOW_UID=$(id -u)" >> .env && cd ..
 	cd airflow && docker compose up airflow-init
 	docker compose build
 
