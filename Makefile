@@ -1,4 +1,4 @@
-.PHONY: help setup start stop restart logs-supabase logs-airflow logs-api clean network
+.PHONY: help setup setup-light start stop restart logs-supabase logs-airflow logs-api clean network
 
 # Help command to list all available targets
 help:
