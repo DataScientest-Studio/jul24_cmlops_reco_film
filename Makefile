@@ -45,16 +45,10 @@ setup2: network
 	@echo "##########################"
 	@echo "Run 'make start' to start the services"
 
-# Setup: Build features and all services without loading data
+# Setup: Build features, build all services and load data
 setup-light: network
 	python ml/src/features/build_features.py
-	cd supabase/docker && cp .env.example .env
-	cd supabase/docker && docker compose pull
-	cd airflow && cp .env.example .env&& echo -e "AIRFLOW_UID=$(id -u)" >> .env && cd ..
-	cd airflow && docker compose up airflow-init
-	docker compose build
-	@echo "##########################"
-	@echo "Run 'make clean-db' to load the data into the database"
+	make setup2
 
 # Start: start all services
 start: network
@@ -104,3 +98,5 @@ clean-db: network
 # Network: create the Docker network 'backend'
 network:
 	docker network create backend || true
+
+# TODO: add targets for testing
