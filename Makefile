@@ -41,8 +41,8 @@ setup2: network
 	cd airflow && echo -e "AIRFLOW_UID=$(id -u)" >> .env && cd ..
 	cd airflow && docker compose up airflow-init
 	docker compose build
-	@echo "##########################"
 	make clean-db
+	@echo "##########################"
 	@echo "Run 'make start' to start the services"
 
 # Setup: Build features and all services without loading data
@@ -61,6 +61,7 @@ start: network
 	cd supabase/docker && docker compose up -d
 	cd airflow && docker compose up -d
 	docker compose up -d
+	@echo "##########################"
 	@echo "supabase: http://localhost:8000"
 	@echo "airflow: http://localhost:8080"
 	@echo "streamlit: http://localhost:8501"
