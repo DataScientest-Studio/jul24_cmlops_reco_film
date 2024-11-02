@@ -19,3 +19,5 @@ faut changer ENABLE_EMAIL_AUTOCONFIRM=false par ENABLE_EMAIL_AUTOCONFIRM=true
 
 à la racine : 
 Exécuter "make setup-light" si vous avez deja les données brutes et que vous avez dans le dossier raw le fichier d'Antoine "links2.csv".
+puis "make start" pour lancer les services.
+puis "make clean-db" pour load les données dans la db.
