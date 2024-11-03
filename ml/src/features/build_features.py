@@ -26,11 +26,7 @@ def process_movies(
 ):
     movies = pd.read_csv(os.path.join(input_dir, movies_csv))
     ratings = pd.read_csv(os.path.join(input_dir, ratings_csv))
-
-    # read links2 and drop the unnamed index column
     links2 = pd.read_csv(os.path.join(input_dir, "links2.csv"))
-    links2 = links2.drop('Unnamed: 0', axis=1)
-    links2 = links2.set_index("movieId")
 
     movies["year"] = movies["title"].str.extract(r"\((\d{4})\)$")
     movies["title"] = movies["title"].str.replace(r"\s*\(\d{4}\)$", "", regex=True)
@@ -44,9 +40,8 @@ def process_movies(
     movies["numRatings"] = movies["numRatings"].astype("Int64")
     movies["lastRatingTimestamp"] = movies["lastRatingTimestamp"].astype("Int64")
 
-    print(links2.head())
-
-    links2 = links2.drop(["imdbId", "tmdbId"], axis=1)
+    links2 = links2.set_index("movieId")
+    links2 = links2.drop(["imdbId", "tmdbId", "Unnamed: 0"], axis=1)
     links2 = links2.rename(columns={"cover_link": "posterUrl"})
     movies = movies.merge(links2, on="movieId", how="left")
 

@@ -94,6 +94,7 @@ data_config = {
             "rating": "float64",
             "numRatings": "int64",
             "lastRatingTimestamp": "int64",
+            "posterUrl": "object",
         },
         "ratings": {
             "userId": "int64",
