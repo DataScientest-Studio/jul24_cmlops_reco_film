@@ -38,10 +38,11 @@ setup1:
 # Setup: Build all services and load data
 setup2: network
 	cd supabase/docker && docker compose pull
-	cd airflow && echo -e "AIRFLOW_UID=$(id -u)" >> .env && cd ..
+	cd airflow && echo "AIRFLOW_UID=$(shell id -u)" >> .env
 	cd airflow && docker compose up airflow-init
 	docker compose build
-	make clean-db
+	cd supabase/docker && docker compose up -d
+	sleep 10 && python ml/src/data/load_data_in_db.py
 	@echo "##########################"
 	@echo "Run 'make start' to start the services"
 
@@ -81,8 +82,8 @@ logs-api:
 
 # Clean: stop and remove all containers, networks, and volumes for all services
 clean:
-	docker compose -f supabase/docker/docker-compose.yml down -v
-	docker compose -f airflow/docker-compose.yaml down -v
+	cd supabase/docker && docker compose down -v
+	cd airflow && docker compose down -v
 	docker compose down -v
 	docker network rm backend || true
 
@@ -91,7 +92,7 @@ clean-db: network
 	cd supabase/docker && docker compose down -v
 	rm -rf supabase/docker/volumes/db/data/
 	cd supabase/docker && docker compose up -d
-	sleep 5 && python ml/src/data/load_data_in_db.py
+	sleep 10 && python ml/src/data/load_data_in_db.py
 	@echo "##########################"
 	@echo "Run 'make start' to start all the services"
 

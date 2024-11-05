@@ -38,7 +38,7 @@ CREATE TABLE users (
     "Sci-Fi" FLOAT,
     "Thriller" FLOAT,
     "War" FLOAT,
-    "Western" FLOAT,
+    "Western" FLOAT
 );
 
 CREATE TABLE ratings (
