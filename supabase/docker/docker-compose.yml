@@ -411,7 +411,10 @@ services:
       - ./volumes/db/pooler.sql:/docker-entrypoint-initdb.d/migrations/99-pooler.sql:Z
       # Use named volume to persist pgsodium decryption key between restarts
       - db-config:/etc/postgresql-custom
+      # Init scripts
       - ./volumes/db/init/01-project-tables.sql:/docker-entrypoint-initdb.d/init-scripts/01-project-tables.sql:Z
+      - ./volumes/db/init/02-auth-trigger.sql:/docker-entrypoint-initdb.d/init-scripts/02-auth-trigger.sql:Z
+      - ./volumes/db/init/03-security-policies.sql:/docker-entrypoint-initdb.d/init-scripts/03-security-policies.sql:Z
 
   vector:
     container_name: supabase-vector

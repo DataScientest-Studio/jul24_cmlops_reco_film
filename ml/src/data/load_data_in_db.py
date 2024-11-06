@@ -7,11 +7,11 @@ import numpy as np
 
 def connect_to_supabase():
     supabase_url = os.environ.get("SUPABASE_URL")
-    supabase_key = os.environ.get("SUPABASE_KEY")
+    supabase_key = os.environ.get("SERVICE_ROLE_KEY")
 
     if not all([supabase_url, supabase_key]):
         raise ValueError(
-            "Les variables d'environnement SUPABASE_URL et SUPABASE_KEY doivent être définies."
+            "Les variables d'environnement SUPABASE_URL et SERVICE_ROLE_KEY doivent être définies."
         )
 
     supabase_url = (
@@ -67,7 +67,8 @@ def load_data(csv_path, table_name, supabase: Client, expected_types: dict, dtyp
             }
             for record in data
         ]
-        supabase.table(table_name).upsert(data).execute()
+
+        supabase.table(table_name).insert(data).execute()
 
 
 supabase = initialize_supabase_connection()
