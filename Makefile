@@ -1,4 +1,4 @@
-.PHONY: help setup1 setup2 setup-light start stop restart logs-supabase logs-airflow logs-api clean network
+.PHONY: help setup1 setup2 start stop restart logs-supabase logs-airflow logs-api clean network
 
 # Help command to list all available targets
 help:
@@ -6,7 +6,6 @@ help:
 	@echo "Targets:"
 	@echo "  setup1      	- Setup environment, load initial data and set .env files based on .env.example"
 	@echo "  setup2      	- Build all services and load data"
-	@echo "  setup-light 	- Build features and all services without loading data"
 	@echo "  start      	- Start all services"
 	@echo "  stop       	- Stop all services"
 	@echo "  restart    	- Restart all services"
@@ -45,11 +44,6 @@ setup2: network
 	sleep 10 && python ml/src/data/load_data_in_db.py
 	@echo "##########################"
 	@echo "Run 'make start' to start the services"
-
-# Setup: Build features, build all services and load data
-setup-light: network
-	python ml/src/features/build_features.py
-	make setup2
 
 # Start: start all services
 start: network
