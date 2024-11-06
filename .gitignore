@@ -101,3 +101,6 @@ trash/
 # Contenu de airflow/logs/
 /airflow/logs/dag*
 /airflow/logs/scheduler
+
+# pytest cache
+.pytest_cache/
