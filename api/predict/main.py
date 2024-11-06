@@ -45,9 +45,9 @@ def make_predictions(genres, model):
     # Calculate nearest neighbors
     _, indices = model.kneighbors(genres)
 
-    # Select 10 random numbers from each row
+    # Select 20 random numbers from each row
     selection = np.array(
-        [np.random.choice(row, size=12, replace=False) for row in indices]
+        [np.random.choice(row, size=20, replace=False) for row in indices]
     )
 
     # Convert the numpy array to a list before returning
