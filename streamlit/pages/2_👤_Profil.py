@@ -7,7 +7,7 @@ import numpy as np
 if "authenticated" not in st.session_state or not st.session_state.authenticated:
     st.switch_page("Home.py")
 
-col1, col2, col3 = st.columns([2, 5, 1])
+col1, col2, col3 = st.columns([2, 4, 1])
 
 with col1:
     st.title("Profil Utilisateur")

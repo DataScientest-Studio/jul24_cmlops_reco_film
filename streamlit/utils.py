@@ -48,7 +48,7 @@ async def display_movie_info_grid(movies_info):
                     <img src="{movie_info['cover_url']}" alt="{movie_info['title']}">
                 </div>
                 <div class="overlay">
-                    <h4 style="color: white;">{movie_info['title']}</h4>
+                    <h5 style="color: white;">{movie_info['title']}</h5>
                     <p>{movie_info['year']}</p>
                     <p class="rating-badge">{movie_info['average_rating']} ⭐️</p>
                     <div style="display: flex; flex-wrap: wrap;">
