@@ -1,70 +1,116 @@
 import pandas as pd
-from sklearn.preprocessing import LabelEncoder
 import os
 
 
-def read_ratings(ratings_csv, data_dir="ml/data/raw") -> pd.DataFrame:
-    data = pd.read_csv(os.path.join(data_dir, ratings_csv))
-    # TODO: vérifier si ça marche sans ça. MAJ : ça a l'air de marcher sans, le model fait de meilleurs predictions
-    # temp = pd.DataFrame(LabelEncoder().fit_transform(data["movieId"]))
-    # data["movieId"] = temp
-    return data
+# Chargement des datasets
+# Définir le chemin vers le sous-dossier et le fichier
+data_dir = os.path.join("ml", "data", "raw")  # Chemin relatif vers le dossier
+ratings_file = os.path.join(data_dir, "ratings.csv")
+movies_file = os.path.join(data_dir, "movies.csv")
+links_file = os.path.join(data_dir, "links.csv")
 
 
-def read_movies(movies_csv, data_dir="ml/data/raw") -> pd.DataFrame:
-    df = pd.read_csv(os.path.join(data_dir, movies_csv))
-    genres = df["genres"].str.get_dummies(sep="|")
-    result_df = pd.concat([df[["movieId", "title"]], genres], axis=1)
-    return result_df
 
+def bayesienne_mean(df, M, C):
+    '''
+    𝑀  = moyenne brute des notes des films.
+    𝐶  = moyenne de la quantité de notes.
+    '''
+    moy_ba = (C * M + df.sum()) / (C + df.count())
+    return moy_ba
 
-def process_movies(
-    movies_csv,
-    ratings_csv,
-    input_dir="ml/data/raw",
-    output_dir="ml/data/processed",
-):
-    movies = pd.read_csv(os.path.join(input_dir, movies_csv))
-    ratings = pd.read_csv(os.path.join(input_dir, ratings_csv))
-    links2 = pd.read_csv(os.path.join(input_dir, "links2.csv"))
+def preprocessing_ratings(ratings_file) -> pd.DataFrame:
+    """Lecture fichier csv et application de la moyenne Bayesienne."""
+    df = pd.read_csv(ratings_file)
+    print("Dataset ratings chargé")
 
-    movies["year"] = movies["title"].str.extract(r"\((\d{4})\)$")
-    movies["title"] = movies["title"].str.replace(r"\s*\(\d{4}\)$", "", regex=True)
-    movies["year"] = pd.to_numeric(movies["year"], errors="coerce").astype("Int64")
-    movie_stats = ratings.groupby("movieId").agg(
-        rating=("rating", "mean"),
-        numRatings=("rating", "count"),
-        lastRatingTimestamp=("timestamp", "max"),
-    )
-    movies = movies.merge(movie_stats, on="movieId", how="left")
-    movies["numRatings"] = movies["numRatings"].astype("Int64")
-    movies["lastRatingTimestamp"] = movies["lastRatingTimestamp"].astype("Int64")
+    # Quantité de notes par chaque film ainsi que la note moyenne par film
+    movies_stats = df.groupby('movieId').agg({'rating': ['count', 'mean']})
+    movies_stats.columns = ['count', 'mean']
 
-    links2 = links2.set_index("movieId")
-    links2 = links2.drop(["imdbId", "tmdbId", "Unnamed: 0"], axis=1)
-    links2 = links2.rename(columns={"cover_link": "posterUrl"})
-    movies = movies.merge(links2, on="movieId", how="left")
+    # Moyenne de la quantité de notes.
+    C = movies_stats['count'].mean()
 
-    movies.to_csv(os.path.join(output_dir, "movies.csv"), index=False)
-    return movies
+    # Moyenne brute des notes des films.
+    M = movies_stats['mean'].mean()
 
+    # Calculer la moyenne bayésienne par film
+    movies_stats['bayesian_mean'] = movies_stats.apply(lambda x: bayesienne_mean(df[df['movieId'] == x.name]['rating'], M, C), axis=1)
 
-def create_user_matrix(ratings, movies, output_dir="ml/data/processed"):
-    movie_ratings = ratings.merge(movies, on="movieId", how="inner")
-    movie_ratings = movie_ratings.drop(
-        ["movieId", "timestamp", "title", "rating"], axis=1
-    )
-    user_matrix = movie_ratings.groupby("userId").agg(
-        "mean",
-    )
-    user_matrix.to_csv(os.path.join(output_dir, "user_matrix.csv"))
-    return user_matrix
+    # Ajouter la colonne bayesian_mean au DataFrame original
+    df = df.merge(movies_stats[['bayesian_mean']], on='movieId', how='left')
+
+    # Remplacer les évaluations originales par les moyennes bayésiennes
+    df['rating'] = df['movieId'].apply(lambda x: movies_stats.loc[x, 'bayesian_mean'])
+    print("Application de la moyenne Bayesienne sur la colonne rating effectuée")
+    # Définir le chemin vers le sous-dossier 'raw' dans le dossier parent 'data'
+    output_dir = os.path.join("ml", "data", "processed")  # ".." fait référence au dossier parent
+    output_file = os.path.join(output_dir, "processed_ratings.csv")
+
+    # Créer le dossier 'raw' s'il n'existe pas
+    os.makedirs(output_dir, exist_ok=True)
+
+    # Enregistrer le DataFrame en tant que fichier CSV
+    try:
+        df.to_csv(output_file, index=False)  # Enregistrer sans l'index
+        print(f"Fichier enregistré avec succès sous {output_file}.")
+    except Exception as e:
+        print(f"Une erreur s'est produite lors de l'enregistrement du fichier : {e}")
+    return df
+
+def preprocessing_movies(movies_file):
+    '''
+    Lecture fichier movies, création d'une colonne year, passage des genres en liste de genres
+    '''
+    df = pd.read_csv(movies_file)
+    print("Dataset movies chargé")
+    print("Création d'une colonne year et passage des genres en liste de genres")
+    # Split sur les pipes
+    df['genres'] = df['genres'].apply(lambda x: x.split("|"))
+    # Extraction de l'année et mise à jour du titre
+    df['year'] = df['title'].str.extract(r'\((\d{4})\)')[0]
+    df['title'] = df['title'].str.replace(r' \(\d{4}\)', '', regex=True)
+    df.ffill(inplace= True)
+    # Définir le chemin vers le sous-dossier 'raw' dans le dossier parent 'data'
+    output_dir = os.path.join("ml", "data", "processed")  # ".." fait référence au dossier parent
+    output_file = os.path.join(output_dir, "processed_movies.csv")
+
+    # Créer le dossier 'raw' s'il n'existe pas
+    os.makedirs(output_dir, exist_ok=True)
+
+    # Enregistrer le DataFrame en tant que fichier CSV
+    try:
+        df.to_csv(output_file, index=False)  # Enregistrer sans l'index
+        print(f"Fichier enregistré avec succès sous {output_file}.")
+    except Exception as e:
+        print(f"Une erreur s'est produite lors de l'enregistrement du fichier : {e}")
+    return df
+
+def preprocessing_links(links_file):
+    '''
+    Chargement du dataset et modification type TmdbId en int'''
+    df = pd.read_csv(links_file)
+    print("Dataset links chargé")
+    print('Modification du type de la colonne tmdbId en int')
+    df['tmdbId'] = df.tmdbId.fillna(0)
+    df['tmdbId'] = df.tmdbId.astype(int)
+    # Définir le chemin vers le sous-dossier 'raw' dans le dossier parent 'data'
+    output_dir = os.path.join("ml", "data", "processed")  # ".." fait référence au dossier parent
+    output_file = os.path.join(output_dir, "processed_links.csv")
+
+    # Créer le dossier 'raw' s'il n'existe pas
+    os.makedirs(output_dir, exist_ok=True)
+
+    # Enregistrer le DataFrame en tant que fichier CSV
+    try:
+        df.to_csv(output_file, index=False)  # Enregistrer sans l'index
+        print(f"Fichier enregistré avec succès sous {output_file}.")
+    except Exception as e:
+        print(f"Une erreur s'est produite lors de l'enregistrement du fichier : {e}")
+    return df
 
 
 if __name__ == "__main__":
-    user_ratings = read_ratings("ratings.csv")
-    movies = read_movies("movies.csv")
-    process_movies("movies.csv", "ratings.csv")
-    user_matrix = create_user_matrix(user_ratings, movies)
-    movies = movies.drop(["title"], axis=1)
-    movies.to_csv("ml/data/processed/movie_matrix.csv", index=False)
+    ratings_df = preprocessing_ratings(ratings_file)
+    movies_df = preprocessing_movies(movies_file)
+    links_df = preprocessing_links(links_file)

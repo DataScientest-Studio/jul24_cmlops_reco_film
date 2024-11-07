@@ -16,16 +16,16 @@ help:
 	@echo "  clean-db       - Delete all data in the database and reload the schema and data"
 	@echo "  network        - Create the Docker network 'backend'"
 
-# Setup: Setup environment, load initial data and set env files based on .env.example	
+# Setup: Setup environment, load initial data and set env files based on .env.example
 # TODO: gérer le fait que l'on ait pas les posterUrl a ce stade pour le build des features
 setup1:
 	@echo "###### SETUP ENV #########"
-	python3 -m venv .venv
-	source .venv/bin/activate
+	# python3 -m venv .venv
+	# source .venv/bin/activate
 	pip install -r requirements-dev.txt
 	@echo "###### DATA & MODEL ######"
 	python ml/src/data/import_raw_data.py
-	python ml/src/features/build_features.py 
+	python ml/src/features/build_features.py
 	python ml/src/models/train_model.py
 	@echo "###### ENV VARIABLES #####"
 	cd supabase/docker && cp .env.example .env
