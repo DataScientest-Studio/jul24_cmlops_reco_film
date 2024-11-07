@@ -76,7 +76,7 @@ target/
 .ipynb_checkpoints/
 
 # exclude data from source control by default
-/data/
+ml/data/
 
 # Mac OS-specific storage files
 .DS_Store
@@ -87,3 +87,20 @@ target/
 
 # Mypy cache
 .mypy_cache/
+
+# venv
+my_env/
+.venv/
+
+# dossier destiné à être supprimé
+tempo/
+tmp/
+temp/
+trash/
+
+# Contenu de airflow/logs/
+/airflow/logs/dag*
+/airflow/logs/scheduler
+
+# pytest cache
+.pytest_cache/
