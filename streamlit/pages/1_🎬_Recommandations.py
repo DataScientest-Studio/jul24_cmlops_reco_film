@@ -1,7 +1,7 @@
 import streamlit as st
-import asyncio
-from utils import get_tmdb_ids, get_movie_info_async, display_movie_info_grid
+from utils import display_movies_grid
 import requests
+from supabase_auth import supabase
 
 # Charger le CSS
 with open("style.css") as f:
@@ -38,19 +38,6 @@ genres = [
 # Construire la user_matrix à partir des valeurs de genres
 user_matrix = ",".join(str(user_info[genre]) for genre in genres)
 
-
-async def main(movie_ids):
-    tmdb_ids = await get_tmdb_ids(movie_ids)
-    info_tasks = [
-        get_movie_info_async(movie_id, tmdb_ids.get(str(movie_id)))
-        for movie_id in movie_ids
-        if tmdb_ids.get(str(movie_id))
-    ]
-    movies_info = await asyncio.gather(*info_tasks)
-    movies_info = [movie_info for movie_info in movies_info if movie_info is not None]
-    await display_movie_info_grid(movies_info)
-
-
 st.title("Recommandations de Films basées sur votre Historique")
 
 if user_matrix:
@@ -64,7 +51,10 @@ if user_matrix:
 
         if "recommendations" in recommendations and recommendations["recommendations"]:
             movie_ids = recommendations["recommendations"][0]
-            asyncio.run(main(movie_ids))
+            movies_info = (
+                supabase.table("movies").select("*").in_("movieId", movie_ids).execute()
+            )
+            display_movies_grid(movies_info.data)
         else:
             st.error("Aucune recommandation disponible.")
     else:
