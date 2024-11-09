@@ -38,11 +38,29 @@ def main(
         "ratings.csv",
         "README.txt",
         "tags.csv",
+        "links2.csv",
     ],
     bucket_folder_url="https://mlops-project-db.s3.eu-west-1.amazonaws.com/movie_recommandation/",
 ):
     """Upload data from AWS s3 in ./ml/data/raw"""
-    import_raw_data(raw_data_relative_path, filenames, bucket_folder_url)
+    # Téléchargement des fichiers S3
+    import_raw_data(raw_data_relative_path, filenames[:-1], bucket_folder_url)
+
+    # Téléchargement spécifique pour links2.csv depuis Google Drive
+    file_id = "130OLLJE9tKYuRPRXGclAXnZAxigOt0vp"
+    gdrive_url = f"https://drive.google.com/uc?id={file_id}"
+    output_file = os.path.join(raw_data_relative_path, "links2.csv")
+
+    if check_existing_file(output_file):
+        print(f"downloading links2.csv from Google Drive")
+        response = requests.get(gdrive_url)
+        if response.status_code == 200:
+            content = response.text
+            with open(output_file, "wb") as text_file:
+                text_file.write(content.encode("utf-8"))
+        else:
+            print(f"Error downloading links2.csv: {response.status_code}")
+
     logger = logging.getLogger(__name__)
     logger.info("making raw data set")
 

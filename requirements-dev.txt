@@ -2,3 +2,5 @@
 -r api/predict/requirements.txt
 -r api/data/requirements.txt
 -r streamlit/requirements.txt
+-r airflow/requirements.txt
+-r tests/requirements.txt
