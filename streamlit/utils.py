@@ -13,6 +13,19 @@ async def get_tmdb_ids(movie_ids):
                 st.error(f"Erreur lors de la récupération des tmdbIds")
                 return {}
 
+        # TODO: changer pour l'api supabase
+        if not movie_ids:
+            return {}
+
+        result = (
+            supabase.table("links")
+            .select("movieId, tmdbId")
+            .in_("movieId", movie_ids)
+            .execute()
+        )
+
+        return {row["movieId"]: row["tmdbId"] for row in result.data}
+
 
 async def get_movie_info_async(movie_id, tmdb_id):
     api_url_tmdb = f"https://api.themoviedb.org/3/movie/{tmdb_id}?language=fr-FR"
