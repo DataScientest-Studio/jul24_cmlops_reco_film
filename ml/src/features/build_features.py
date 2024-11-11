@@ -1,5 +1,7 @@
 import pandas as pd
 import os
+import random
+import string
 
 # Chargement des datasets
  # Obtenir le répertoire du script actuel
@@ -56,7 +58,7 @@ def preprocessing_ratings(ratings_file) -> pd.DataFrame:
     print("Application de la moyenne bayésienne sur la colonne rating effectuée")
 
     # Définir le chemin vers le dossier 'processed' pour enregistrer le fichier traité
-    output_dir = os.path.join("ml", "data", "processed")
+    output_dir = os.path.join(base_dir, '..', '..', 'data',"processed")
     output_file = os.path.join(output_dir, "processed_ratings.csv")
 
     # Créer le dossier 'processed' s'il n'existe pas
@@ -101,7 +103,7 @@ def preprocessing_movies(movies_file) -> pd.DataFrame:
     df.ffill(inplace=True)
 
     # Définir le chemin pour enregistrer le fichier traité
-    output_dir = os.path.join("ml", "data", "processed")
+    output_dir = os.path.join(base_dir, '..', '..', 'data',"processed")
     output_file = os.path.join(output_dir, "processed_movies.csv")
 
     # Créer le dossier 'processed' s'il n'existe pas
@@ -136,7 +138,7 @@ def preprocessing_links(links_file) -> pd.DataFrame:
    df['tmdbId'] = df.tmdbId.fillna(0).astype(int)
 
    # Définir le chemin pour enregistrer le fichier traité
-   output_dir = os.path.join("ml", "data", "processed")
+   output_dir = os.path.join(base_dir, '..', '..', 'data',"processed")
    output_file = os.path.join(output_dir, "processed_links.csv")
 
    # Créer le dossier 'processed' s'il n'existe pas
@@ -152,7 +154,50 @@ def preprocessing_links(links_file) -> pd.DataFrame:
 
    return df
 
+def generate_random_email(user_id):
+    """Génère une adresse e-mail fictive basée sur l'ID utilisateur."""
+    domain = "example.com"
+    return f"user{user_id}@{domain}"
+
+def generate_random_password(length=12):
+    """Génère un mot de passe aléatoire."""
+    characters = string.ascii_letters + string.digits + string.punctuation
+    return ''.join(random.choice(characters) for i in range(length))
+
+def generate_users_csv(file_name='users.csv', num_users=138493):
+    """Génère un fichier CSV contenant des utilisateurs fictifs.
+
+    Args:
+        file_name (str): Le nom du fichier CSV à créer.
+        num_users (int): Le nombre d'utilisateurs à générer.
+    """
+
+    # Liste pour stocker les données des utilisateurs
+    users = []
+
+    # Générer des utilisateurs
+    for user_id in range(1, num_users + 1):
+        email = generate_random_email(user_id)
+        password = generate_random_password()
+        users.append({'userId': user_id, 'email': email, 'password': password})
+
+    # Créer un DataFrame à partir de la liste d'utilisateurs
+    df_users = pd.DataFrame(users)
+
+    # Définir le chemin pour enregistrer le fichier traité
+    output_dir = os.path.join(base_dir, '..', '..', 'data',"processed")
+    output_file = os.path.join(output_dir, "users.csv")
+
+
+    # Enregistrer le DataFrame dans un fichier CSV
+    df_users.to_csv(output_file, index=False)
+
+    print(f"Fichier CSV '{file_name}' créé avec succès.")
+
+# Exemple d'utilisation de la fonction
+
 if __name__ == "__main__":
-   ratings_df = preprocessing_ratings(ratings_file)
-   movies_df = preprocessing_movies(movies_file)
-   links_df = preprocessing_links(links_file)
+   preprocessing_ratings(ratings_file)
+   preprocessing_movies(movies_file)
+   preprocessing_links(links_file)
+   generate_users_csv('users.csv', 138493)

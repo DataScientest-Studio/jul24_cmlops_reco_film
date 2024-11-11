@@ -121,14 +121,14 @@ data_config = {
         "movies": os.path.join(data_dir, "processed_movies.csv"),
         "links": os.path.join(data_dir, "processed_links.csv"),
         "ratings": os.path.join(data_dir, "processed_ratings.csv"),
+        "users": os.path.join(data_dir, "users.csv")
     },
     "expected_types": {
         "movies": {
             "movieId": "int64",
             "title": "object",
             "genres": "object",
-            "year": "int64",
-            "rating": "float64",
+            "year": "int64"
         },
         "ratings": {
             "userId": "int64",
@@ -142,10 +142,15 @@ data_config = {
             "imdbId": "object",
             "tmdbId": "object"
         },
+        "users": {
+            "userId": "int64",
+            "email": "object",
+            "password": "object"
+        },
     },
 }
 
-# Charger les données pour chaque table configurée
+#  Charger les données pour chaque table configurée
 for table_name, file_path in data_config["tables"].items():
     if table_name in data_config["expected_types"]:
         load_data(
@@ -155,7 +160,6 @@ for table_name, file_path in data_config["tables"].items():
             data_config["expected_types"][table_name]
         )
     else:
-        print(f"Attention : Aucun type attendu défini pour la table {table_name}")
         load_data(file_path, table_name, supabase, {})
 
 print("Données chargées avec succès dans la base de données Supabase.")

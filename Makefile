@@ -80,6 +80,7 @@ clean:
 	cd airflow && docker compose down -v
 	docker compose down -v
 	docker network rm backend || true
+	bash clean_docker.sh
 
 # Clean-db: delete all data in the database and reload the schema and data
 clean-db: network
