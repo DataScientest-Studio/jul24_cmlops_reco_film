@@ -1,12 +1,23 @@
+# Utiliser l'image de base Python 3.12
+FROM python:3.12
 
-FROM python:3.12-slim
-
+# Définir le répertoire de travail
 WORKDIR /app
 
-COPY . /app
+# Copier le fichier requirements.txt dans le conteneur
+COPY ./requirements.txt /app/requirements.txt
 
-RUN pip install --no-cache-dir -r requirements.txt
+# Installer les dépendances
+RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt
 
+# Copier les fichiers de l'application dans le conteneur
+COPY ./app /app
+
+# Exposer le port utilisé par Streamlit
 EXPOSE 8501
 
-CMD ["streamlit", "run", "Home.py", "--server.port=8501", "--server.address=0.0.0.0"]
+# Définir le point d'entrée pour exécuter Streamlit
+ENTRYPOINT ["streamlit", "run"]
+
+# Spécifier le script à exécuter
+CMD ["app.py"]
