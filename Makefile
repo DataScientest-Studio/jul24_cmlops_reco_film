@@ -40,7 +40,7 @@ setup2: network
 	cd airflow && echo "AIRFLOW_UID=$(shell id -u)" >> .env
 	cd airflow && docker compose up airflow-init
 	docker compose build
-	cd supabase/docker && docker compose up -d
+	cd supabase/docker && docker compose up --build -d
 	sleep 10 && python ml/src/data/load_data_in_db.py
 	@echo "##########################"
 	@echo "Run 'make start' to start the services"
