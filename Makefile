@@ -42,6 +42,7 @@ setup2: network
 	docker compose build
 	cd supabase/docker && docker compose up --build -d
 	sleep 10 && python ml/src/data/load_data_in_db.py
+	python ml/src/data/load_users_in_db.py
 	@echo "##########################"
 	@echo "Run 'make start' to start the services"
 

@@ -121,7 +121,6 @@ data_config = {
         "movies": os.path.join(data_dir, "processed_movies.csv"),
         "links": os.path.join(data_dir, "processed_links.csv"),
         "ratings": os.path.join(data_dir, "processed_ratings.csv"),
-        "users": os.path.join(data_dir, "users.csv")
     },
     "expected_types": {
         "movies": {
@@ -141,11 +140,6 @@ data_config = {
             "movieId": "int64",
             "imdbId": "object",
             "tmdbId": "object"
-        },
-        "users": {
-            "userId": "int64",
-            "email": "object",
-            "password": "object"
         },
     },
 }
