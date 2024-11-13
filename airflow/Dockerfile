@@ -1,11 +1,18 @@
-FROM apache/airflow:2.10.2
+FROM apache/airflow:latest
 
 USER root
-RUN apt-get update && apt-get install -y --no-install-recommends \
+
+# Installer les dépendances nécessaires pour la compilation et gosu
+RUN apt-get update && apt-get install -y \
     build-essential \
-    && apt-get clean \
+    python3-dev \
+    gosu \
     && rm -rf /var/lib/apt/lists/*
 
 USER airflow
-COPY requirements.txt /requirements.txt
-RUN pip install --no-cache-dir apache-airflow==${AIRFLOW_VERSION} -r /requirements.txt
+
+COPY requirements.txt .
+
+# Mettre à jour pip et installer les dépendances Python
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
