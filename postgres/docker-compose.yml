@@ -12,7 +12,10 @@ services:
       - backend
     volumes:
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
-      - /ml/data/processed/:/docker-entrypoint-initdb.d
+      - ../ml/data/processed/users.csv:/docker-entrypoint-initdb.d/users.csv
+      - ../ml/data/processed/processed_movies.csv:/docker-entrypoint-initdb.d/processed_movies.csv
+      - ../ml/data/processed/processed_ratings.csv:/docker-entrypoint-initdb.d/processed_ratings.csv
+      - ../ml/data/processed/processed_links.csv:/docker-entrypoint-initdb.d/processed_links.csv
       - pg_data:/var/lib/postgresql/data # Volume pour persistance des données
 
   pgadmin:
@@ -27,7 +30,7 @@ services:
       - backend
 
 volumes:
-  - pg_data:
+  pg_data:
 
 
 networks:
