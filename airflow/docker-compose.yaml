@@ -36,8 +36,8 @@ x-airflow-common: &airflow-common
       condition: service_healthy
     postgres:
       condition: service_healthy
-    mlflow-webserver:
-      condition: service_healthy
+    # mlflow-webserver:
+    #   condition: service_healthy
   networks:
     - backend
 

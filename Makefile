@@ -1,4 +1,4 @@
-.PHONY: help setup1 setup2 start stop restart logs-supabase logs-airflow logs-api clean network
+.PHONY: help setup1 setup2 start stop down restart logs-supabase logs-airflow logs-api clean network
 
 # Help command to list all available targets
 help:
@@ -59,6 +59,11 @@ stop:
 	docker compose stop
 	docker compose -f airflow/docker-compose.yaml stop
 	docker compose -f postgres/docker-compose.yml stop
+
+down:
+	docker compose down --volumes --remove-orphans
+	docker compose -f airflow/docker-compose.yaml down --volumes --remove-orphans
+	docker compose -f postgres/docker-compose.yml down --volumes --remove-orphans
 
 # Restart: restart all services
 restart: stop start
