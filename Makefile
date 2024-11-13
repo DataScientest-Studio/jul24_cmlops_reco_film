@@ -20,8 +20,8 @@ help:
 # TODO: gérer le fait que l'on ait pas les posterUrl a ce stade pour le build des features
 setup1:
 	@echo "###### SETUP ENV #########"
-	# python3 -m venv .venv
-	# source .venv/bin/activate
+	python3 -m venv .venv
+	source .venv/bin/activate
 	pip install -r requirements-dev.txt
 	@echo "###### DATA & MODEL ######"
 	python ml/src/data/import_raw_data.py
@@ -41,17 +41,16 @@ setup2: network
 	cd airflow && docker compose up airflow-init
 	docker compose build
 	cd postgres && docker compose up --build -d
-	sleep 10 && python ml/src/data/load_data_in_db.py
 	@echo "##########################"
 	@echo "Run 'make start' to start the services"
 
 # Start: start all services
 start: network
-	cd supabase/docker && docker compose up -d
+	cd postgres && docker compose up -d
 	cd airflow && docker compose up -d
 	docker compose up -d
 	@echo "##########################"
-	@echo "supabase: http://localhost:8000"
+	@echo "Pg Admin: http://127.0.0.1:5431"
 	@echo "airflow: http://localhost:8080"
 	@echo "streamlit: http://localhost:8501"
 
@@ -59,7 +58,7 @@ start: network
 stop:
 	docker compose stop
 	docker compose -f airflow/docker-compose.yaml stop
-	docker compose -f supabase/docker/docker-compose.yml stop
+	docker compose -f postgres/docker-compose.yml stop
 
 # Restart: restart all services
 restart: stop start

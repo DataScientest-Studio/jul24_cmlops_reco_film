@@ -20,8 +20,6 @@ services:
   # This container runs the artifact storage as an S3 server.
   s3-artifact-storage:
     image: minio/minio
-    volumes:
-      - ./mlflow-data:/data
     environment: &env-mlflow-s3
       MINIO_ROOT_USER: mlflow_access
       MINIO_ROOT_PASSWORD: mlflow_secret
@@ -146,8 +144,8 @@ services:
 volumes:
   shared_prometheus:
   postgres-db-volume-mlflow:
-  supabase-db:
   grafana_data:
+
 
 networks:
   backend:
