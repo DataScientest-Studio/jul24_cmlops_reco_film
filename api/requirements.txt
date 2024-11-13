@@ -13,4 +13,4 @@ matplotlib
 rapidfuzz
 scipy
 scikit-surprise
-supabase
+sqlalchemy

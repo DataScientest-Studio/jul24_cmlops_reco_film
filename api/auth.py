@@ -2,8 +2,12 @@ from datetime import timedelta, datetime
 from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
 from starlette import status
-from fastapi.security import  OAuth2PasswordBearer
+from database import SessionLocal
+from models import User
+from passlib.context import CryptContext
+from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from jose import jwt, JWTError
 import os
 from dotenv import load_dotenv
@@ -11,12 +15,12 @@ from prometheus_client import Counter, Histogram, CollectorRegistry
 import time
 import re
 
+
 # Création d'un routeur pour gérer les routes d'authentification
 router = APIRouter(
     prefix='/auth',  # Préfixe pour toutes les routes dans ce routeur
-    tags=['auth']  # Tag pour la documentation
+    tags=['auth']    # Tag pour la documentation
 )
-
 # Charger les variables d'environnement à partir du fichier .env
 load_dotenv()
 
@@ -24,88 +28,81 @@ load_dotenv()
 SECRET_KEY = os.getenv('SECRET_KEY')
 ALGORITHM = os.getenv('ALGORITHM')  # Algorithme utilisé pour encoder le JWT
 
-# Vérification des variables d'environnement SUPABASE_URL et SUPABASE_KEY
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
-if not SUPABASE_URL or not SUPABASE_KEY:
-    raise Exception("Les variables d'environnement SUPABASE_URL et SUPABASE_KEY doivent être définies")
+# Contexte de hachage pour le mot de passe
+bcrypt_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
 
-# Initialiser le client Supabase
-from supabase import create_client, Client
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+# Définition du schéma de sécurité pour le token
+oauth2_bearer = OAuth2PasswordBearer(tokenUrl='auth/token')
 
 # Modèle Pydantic pour la création d'un utilisateur
 class CreateUserRequest(BaseModel):
-    email: str  # Email d'utilisateur
+    username: str  # Nom d'utilisateur
+    email: str  # Adresse e-mail
     password: str  # Mot de passe
 
-def sign_up(create_user_request: CreateUserRequest):
-    """Inscription d'un nouvel utilisateur"""
-    try:
-        response = supabase.auth.sign_up({
-            "email": create_user_request.email,
-            "password": create_user_request.password
-        })
-        return response
-    except Exception as e:
-        raise Exception(f"Erreur lors de l'inscription : {str(e)}")
+# Modèle Pydantic pour le token d'accès
+class Token(BaseModel):
+    access_token: str  # Le token d'accès
+    token_type: str    # Type de token (généralement "bearer")
 
-def sign_in(create_user_request: CreateUserRequest):
-    """Connexion d'un utilisateur"""
+# Fonction pour obtenir une session de base de données
+def get_db():
+    db = SessionLocal()  # Crée une nouvelle session de base de données
     try:
-        response = supabase.auth.sign_in_with_password({
-            "email": create_user_request.email,
-            "password": create_user_request.password
-        })
-        return response
-    except Exception as e:
-        raise Exception(f"Erreur lors de la connexion : {str(e)}")
+        yield db  # Renvoie la session pour utilisation
+    finally:
+        db.close()  # Ferme la session à la fin
 
-def sign_out():
-    """Déconnexion d'un utilisateur"""
-    try:
-        supabase.auth.sign_out()
-        return True
-    except Exception as e:
-        raise Exception(f"Erreur lors de la déconnexion : {str(e)}")
-
-# Compteurs et histogrammes pour les métriques Prometheus
+# Compteurs et histogrammes
 collector = CollectorRegistry()
+
+# Compteurs et histogrammes pour les métriques
 user_creation_counter = Counter(
     name='user_creation_requests_total',
     documentation='Total number of user creation requests',
     labelnames=['status_code'],
 )
+
 login_requests_counter = Counter(
     name='login_requests_total',
     documentation='Total number of login requests',
     labelnames=['status_code'],
 )
+
 user_creation_duration_histogram = Histogram(
     name='user_creation_duration_seconds',
     documentation='Duration of user creation requests in seconds',
     labelnames=['status_code'],
 )
+
 login_duration_histogram = Histogram(
     name='login_duration_seconds',
     documentation='Duration of login requests in seconds',
     labelnames=['status_code'],
 )
+
 error_counter = Counter(
     name='user_creation_errors_total',
     documentation='Total number of user creation errors',
     labelnames=['error_type'],
 )
 
-# Fonction pour valider l'email avec une expression régulière
-def validate_email(email: str) -> str:
-    email_regex = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
+# Fonction pour valider le nom d'utilisateur
+def validate_username(username):
+    if re.match("^[A-Za-z0-9_]+$", username) is None:
+        return "Le nom d'utilisateur ne doit contenir que des lettres, chiffres et underscores."
+    return None
+
+def validate_email(email):
+    # Expression régulière pour valider une adresse e-mail
+    email_regex = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
+
     if re.match(email_regex, email) is None:
         return "L'adresse e-mail n'est pas valide."
     return None
 
-# Fonction pour valider le mot de passe selon des critères de sécurité
-def validate_password(password: str) -> str:
+# Fonction pour valider le mot de passe
+def validate_password(password):
     if len(password) < 12:
         return "Le mot de passe doit contenir au moins 12 caractères."
     if not re.search(r"\d", password):
@@ -116,77 +113,93 @@ def validate_password(password: str) -> str:
         return "Le mot de passe doit contenir au moins un caractère spécial."
     return None
 
-# Fonction pour vérifier si l'utilisateur existe déjà par email
-def user_exists_by_email(email: str) -> bool:
-    users = supabase.auth.admin.list_users()
-    for user in users.data:
-        if user.email == email:
-            return True  # L'utilisateur existe déjà
-    return False  # L'utilisateur n'existe pas
-
-# Route pour créer un nouvel utilisateur avec validation et métriques Prometheus
+# Route pour créer un nouvel utilisateur
 @router.post("/", status_code=status.HTTP_201_CREATED)
-async def create_user(create_user_request: CreateUserRequest):
+async def create_user(db: Annotated[Session, Depends(get_db)], create_user_request: CreateUserRequest):
     start_time = time.time()  # Démarrer le chronomètre
+    # Valider le nom d'utilisateur
+    username_error = validate_username(create_user_request.username)
+    if username_error:
+        error_counter.labels(error_type='invalid_username').inc()
+        raise HTTPException(status_code=400, detail=username_error)
+    # Valider le mail
+    mail_error = validate_email(create_user_request.email)
+    if mail_error:
+        error_counter.labels(error_type='invalid_mail').inc()
+        raise HTTPException(status_code=400, detail=mail_error)
 
-    # Valider l'email de l'utilisateur
-    email_error = validate_email(create_user_request.email)
-    if email_error:
-        error_counter.labels(error_type='invalid_email').inc()
-        raise HTTPException(status_code=400, detail=email_error)
-
-    # Valider le mot de passe de l'utilisateur
+    # Valider le mot de passe
     password_error = validate_password(create_user_request.password)
     if password_error:
         error_counter.labels(error_type='invalid_password').inc()
         raise HTTPException(status_code=400, detail=password_error)
 
-    # Vérifiez si l'utilisateur existe déjà par email
-    existing_user = user_exists_by_email(create_user_request.email)
+    # Vérifiez si l'utilisateur existe déjà
+    existing_user = db.query(User).filter(User.email == create_user_request.email).first()
     if existing_user:
         error_counter.labels(error_type='username_already_registered').inc()
         user_creation_counter.labels(status_code='400').inc()
-        raise HTTPException(status_code=400, detail="L'utilisateur est déjà enregistré.")
+        raise HTTPException(status_code=400, detail="Email already registered")  # Erreur si l'utilisateur existe
 
-    # Inscrire l'utilisateur dans Supabase si toutes les validations passent
-    sign_up(create_user_request)
+    # Créer le modèle utilisateur
+    create_user_model = User(
+        username=create_user_request.username,
+        email=create_user_request.email,
+        hashed_password=bcrypt_context.hash(create_user_request.password),  # Hachage du mot de passe
+    )
 
-    duration = time.time() - start_time  # Calculer la durée de la création de l'utilisateur
+    db.add(create_user_model)  # Ajoute l'utilisateur à la session
+    db.commit()  # Commit les changements dans la base de données
+    db.refresh(create_user_model)  # Rafraîchit l'instance pour obtenir l'ID
+
+    duration = time.time() - start_time  # Calculer la durée
     user_creation_duration_histogram.labels(status_code='201').observe(duration)
-
     user_creation_counter.labels(status_code='201').inc()  # Incrémenter le compteur de succès
 
+    return create_user_model  # Retourne le modèle utilisateur créé
+
+# Route pour obtenir un token d'accès
+@router.post("/token", response_model=Token)
+async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: Annotated[Session, Depends(get_db)]):
+    start_time = time.time()  # Démarrer le chronomètre
+    user = authenticate_user(form_data.email, form_data.password, db)  # Authentifie l'utilisateur
+    if not user:
+        login_requests_counter.labels(status_code='401').inc()
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Could not validate user.')  # Erreur si l'authentification échoue
+
+    token = create_access_token(user.email, user.id, timedelta(minutes=30))  # Crée un token d'accès
+    duration = time.time() - start_time  # Calculer la durée
+    login_duration_histogram.labels(status_code='200').observe(duration)
+    login_requests_counter.labels(status_code='200').inc()  # Incrémenter le compteur de succès
+
+    return {"access_token": token, "token_type": "bearer"}  # Retourne le token et son type
+
 # Fonction pour authentifier un utilisateur
-def authenticate_user(username: str, password: str):
-   """Authentifie un utilisateur avec son nom d'utilisateur et son mot de passe."""
-   user = supabase.auth.admin.get_user_by_email(username)  # Récupérer l'utilisateur par email
-   if not user:
-       login_requests_counter.labels(status_code='404').inc()
-       raise HTTPException(status_code=404, detail="Utilisateur non trouvé.")
-
-   if not supabase.auth.verify_password(password, user.password):  # Vérifier le mot de passe (ajuster selon votre implémentation)
-       login_requests_counter.labels(status_code='401').inc()
-       raise HTTPException(status_code=401, detail="Mot de passe incorrect.")
-
-   return user  # Retourner l'utilisateur si l'authentification réussit
+def authenticate_user(email: str, password: str, db: Session):
+    user = db.query(User).filter(User.email == email).first()  # Récupère l'utilisateur par nom d'utilisateur
+    if not user:
+        login_requests_counter.labels(status_code='404').inc()
+        raise HTTPException(status_code=404, detail="Utilisateur non trouvé")  # Lève une exception si l'utilisateur n'existe pas
+    if not bcrypt_context.verify(password, user.hashed_password):  # Vérifie le mot de passe
+        login_requests_counter.labels(status_code='401').inc()
+        raise HTTPException(status_code=401, detail="Mot de passe incorrect")  # Lève une exception si le mot de passe est incorrect
+    return user  # Retourne l'utilisateur si l'authentification réussit
 
 # Fonction pour créer un token d'accès
-def create_access_token(username: str, user_id: int, expires_delta: timedelta):
-   """Crée un token JWT pour authentifier l'utilisateur."""
-   encode = {'sub': username, 'id': user_id}  # Charge utile du token
-   expires = datetime.utcnow() + expires_delta  # Définit la date d'expiration
-   encode.update({'exp': expires})  # Ajoute la date d'expiration à la charge utile
-   return jwt.encode(encode, SECRET_KEY, algorithm=ALGORITHM)  # Encode le token
+def create_access_token(email: str, user_id: int, expires_delta: timedelta):
+    encode = {'sub': email, 'id': user_id}  # Charge utile du token
+    expires = datetime.utcnow() + expires_delta  # Définit la date d'expiration
+    encode.update({'exp': expires})  # Ajoute la date d'expiration à la charge utile
+    return jwt.encode(encode, SECRET_KEY, algorithm=ALGORITHM)  # Encode le token
 
 # Fonction pour obtenir l'utilisateur actuel à partir du token
-async def get_current_user(token: Annotated[str, Depends(OAuth2PasswordBearer)]):
-   """Récupère les informations sur l'utilisateur actuel à partir du token JWT."""
-   try:
-       payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])  # Décode le token
-       username: str = payload.get('sub')  # Récupère le nom d'utilisateur
-       user_id: int = payload.get('id')  # Récupère l'ID de l'utilisateur
-       if username is None or user_id is None:
-           raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Could not validate user.')  # Erreur si les données sont manquantes
-       return {'username': username, 'id': user_id}  # Retourne les données de l'utilisateur
-   except JWTError:
-       raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Could not validate user')  # Erreur si le token est invalide
+async def get_current_user(token: Annotated[str, Depends(oauth2_bearer)]):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])  # Décode le token
+        email: str = payload.get('sub')  # Récupère le nom d'utilisateur
+        user_id: int = payload.get('id')  # Récupère l'ID de l'utilisateur
+        if email is None or user_id is None:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Could not validate user.')  # Erreur si les données sont manquantes
+        return {'email': email, 'id': user_id}  # Retourne les données de l'utilisateur
+    except JWTError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Could not validate user')  # Erreur si le token est invalide

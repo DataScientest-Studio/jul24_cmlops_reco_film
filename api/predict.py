@@ -163,7 +163,7 @@ links = read_links('processed_links.csv')
 # Chargement d'un modèle SVD pré-entraîné pour les recommandations
 model_svd = load_model('model_svd.pkl')
 # Chargement de la matrice cosinus similarity
-cosine_sim = load_model('cosinus_similarity.pk')
+cosine_sim = load_model('cosinus_similarity.pkl')
 print(f"Dimensions of our genres cosine similarity matrix: {cosine_sim.shape}")
 # Merge de movies et links pour avoir un ix commun
 movies_links_df = movies.merge(links, on = "movieId", how = 'left')
