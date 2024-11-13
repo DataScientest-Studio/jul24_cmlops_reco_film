@@ -28,21 +28,20 @@ setup1:
 	python ml/src/features/build_features.py
 	python ml/src/models/train_model.py
 	@echo "###### ENV VARIABLES #####"
-	cd supabase/docker && cp .env.example .env
+	cd postgres && cp .env.example .env
 	cd airflow && cp .env.example .env
 	cp .env.example .env
 	@echo "##########################"
-	@echo "Set the desired env variables in the .env files (supabase/docker/.env, airflow/.env and .env) then run 'make setup2'"
+	@echo "Set the desired env variables in the .env files (postgres/.env, airflow/.env and .env) then run 'make setup2'"
 
 # Setup: Build all services and load data
 setup2: network
-	cd supabase/docker && docker compose pull
+	cd postgres && docker compose pull
 	cd airflow && echo "AIRFLOW_UID=$(shell id -u)" >> .env
 	cd airflow && docker compose up airflow-init
 	docker compose build
-	cd supabase/docker && docker compose up --build -d
+	cd postgres && docker compose up --build -d
 	sleep 10 && python ml/src/data/load_data_in_db.py
-	python ml/src/data/load_users_in_db.py
 	@echo "##########################"
 	@echo "Run 'make start' to start the services"
 

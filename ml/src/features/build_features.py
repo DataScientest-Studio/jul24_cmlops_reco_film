@@ -154,15 +154,46 @@ def preprocessing_links(links_file) -> pd.DataFrame:
 
    return df
 
+def generate_username(length: int = 8) -> str:
+    """Génère un nom d'utilisateur aléatoire."""
+    # Utilisation de lettres minuscules et chiffres pour le nom d'utilisateur
+    characters = string.ascii_lowercase + string.digits
+    username = ''.join(random.choice(characters) for _ in range(length))
+    return username
+
+
 def generate_random_email(user_id):
     """Génère une adresse e-mail fictive basée sur l'ID utilisateur."""
     domain = "example.com"
     return f"user{user_id}@{domain}"
 
 def generate_random_password(length=12):
-    """Génère un mot de passe aléatoire."""
-    characters = string.ascii_letters + string.digits + string.punctuation
-    return ''.join(random.choice(characters) for i in range(length))
+    """Génère un mot de passe aléatoire qui respecte les conditions spécifiées."""
+    if length < 12:
+        raise ValueError("Le mot de passe doit contenir au moins 12 caractères.")
+
+    # Assurer que le mot de passe contient au moins un caractère de chaque type requis
+    lower = string.ascii_lowercase
+    upper = string.ascii_uppercase
+    digits = string.digits
+    special = string.punctuation
+
+    # Créer un mot de passe initial avec un caractère de chaque type requis
+    password = [
+        random.choice(lower),
+        random.choice(upper),
+        random.choice(digits),
+        random.choice(special)
+    ]
+
+    # Remplir le reste du mot de passe avec des caractères aléatoires
+    all_characters = lower + upper + digits + special
+    password += random.choices(all_characters, k=length - 4)
+
+    # Mélanger les caractères pour éviter les motifs prévisibles
+    random.shuffle(password)
+
+    return ''.join(password)
 
 def generate_users_csv(file_name='users.csv', num_users=138493):
     """Génère un fichier CSV contenant des utilisateurs fictifs.
@@ -177,9 +208,10 @@ def generate_users_csv(file_name='users.csv', num_users=138493):
 
     # Générer des utilisateurs
     for user_id in range(1, num_users + 1):
+        username = generate_username()
         email = generate_random_email(user_id)
         password = generate_random_password()
-        users.append({'userId': user_id, 'email': email, 'password': password})
+        users.append({'userId': user_id, 'username' : username, 'email': email, 'password': password})
 
     # Créer un DataFrame à partir de la liste d'utilisateurs
     df_users = pd.DataFrame(users)
