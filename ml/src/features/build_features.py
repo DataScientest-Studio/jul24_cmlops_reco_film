@@ -2,14 +2,21 @@ import pandas as pd
 import os
 import random
 import string
+from passlib.context import CryptContext
+from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 
-# Chargement des datasets
- # Obtenir le répertoire du script actuel
+# Clé secrète pour le JWT (à remplacer par une variable d'environnement en production)
+SECRET_KEY = os.getenv('SECRET_KEY')
+ALGORITHM = os.getenv('ALGORITHM')
+
+# Contexte de hachage pour le mot de passe
+bcrypt_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
+
+# Définition du schéma de sécurité pour le token
+oauth2_bearer = OAuth2PasswordBearer(tokenUrl='auth/token')
+
+# localisation du fichier
 base_dir = os.path.dirname(os.path.abspath(__file__))
-data_dir = os.path.join(base_dir, '..', '..', 'data', 'raw')
-ratings_file = os.path.join(data_dir, "ratings.csv")
-movies_file = os.path.join(data_dir, "movies.csv")
-links_file = os.path.join(data_dir, "links.csv")
 
 def bayesienne_mean(df, M, C):
     """
@@ -91,7 +98,8 @@ def preprocessing_movies(movies_file) -> pd.DataFrame:
     print("Création d'une colonne year et passage des genres en liste de genres")
 
     # Séparer les genres sur les pipes
-    df['genres'] = df['genres'].apply(lambda x: x.split("|"))
+    # Séparer les genres sur les pipes et les joindre par des virgules
+    df['genres'] = df['genres'].apply(lambda x: ', '.join(x.split("|")))
 
     # Extraction de l'année et mise à jour du titre
     df['year'] = df['title'].str.extract(r'\((\d{4})\)')[0]
@@ -192,44 +200,64 @@ def generate_random_password(length=12):
 
     # Mélanger les caractères pour éviter les motifs prévisibles
     random.shuffle(password)
+    plain_password = ''.join(password)
+    hashed_password = bcrypt_context.hash(plain_password)
+    return plain_password, hashed_password
 
-    return ''.join(password)
-
-def generate_users_csv(file_name='users.csv', num_users=138493):
-    """Génère un fichier CSV contenant des utilisateurs fictifs.
+def preprocessing_users(num_users) -> pd.DataFrame:
+    """
+    Génère des utilisateurs fictifs avec des mots de passe aléatoires et hachés.
 
     Args:
-        file_name (str): Le nom du fichier CSV à créer.
-        num_users (int): Le nombre d'utilisateurs à générer.
+        num_users (int): Nombre d'utilisateurs à générer.
+
+    Returns:
+        pd.DataFrame: DataFrame contenant les utilisateurs générés.
     """
-
-    # Liste pour stocker les données des utilisateurs
+    # Générer des données fictives pour les utilisateurs
     users = []
-
-    # Générer des utilisateurs
     for user_id in range(1, num_users + 1):
-        username = generate_username()
-        email = generate_random_email(user_id)
-        password = generate_random_password()
-        users.append({'userId': user_id, 'username' : username, 'email': email, 'password': password})
+        username = f"user{user_id}"
+        email = f"user{user_id}@example.com"
+        plain_password, hashed_password = generate_random_password()
+        users.append({
+            "userId": user_id,
+            "username": username,
+            "email": email,
+            "password": plain_password,
+            "hashed_password": hashed_password
+        })
 
-    # Créer un DataFrame à partir de la liste d'utilisateurs
-    df_users = pd.DataFrame(users)
+    # Créer un DataFrame à partir des données générées
+    df = pd.DataFrame(users)
+    print("Dataset users généré")
 
     # Définir le chemin pour enregistrer le fichier traité
-    output_dir = os.path.join(base_dir, '..', '..', 'data',"processed")
-    output_file = os.path.join(output_dir, "users.csv")
+    output_dir = os.path.join(os.path.dirname(__file__), '..', 'data', 'processed')
+    output_file = os.path.join(output_dir, "processed_users.csv")
 
+    # Créer le dossier 'processed' s'il n'existe pas
+    os.makedirs(output_dir, exist_ok=True)
 
-    # Enregistrer le DataFrame dans un fichier CSV
-    df_users.to_csv(output_file, index=False)
+    # Enregistrer le DataFrame en tant que fichier CSV
+    try:
+        df.to_csv(output_file, index=False)  # Enregistrer sans l'index
+        print(f"Fichier enregistré avec succès sous {output_file}.")
 
-    print(f"Fichier CSV '{file_name}' créé avec succès.")
+    except Exception as e:
+        print(f"Une erreur s'est produite lors de l'enregistrement du fichier : {e}")
 
-# Exemple d'utilisation de la fonction
+    return df
 
 if __name__ == "__main__":
-   preprocessing_ratings(ratings_file)
-   preprocessing_movies(movies_file)
-   preprocessing_links(links_file)
-   generate_users_csv('users.csv', 138493)
+    # Chargement des datasets
+    # Obtenir le répertoire du script actuel
+    # base_dir = os.path.dirname(os.path.abspath(__file__))
+    # data_dir = os.path.join(base_dir, '..', '..', 'data', 'raw')
+    # ratings_file = os.path.join(data_dir, "ratings.csv")
+    # movies_file = os.path.join(data_dir, "movies.csv")
+    # links_file = os.path.join(data_dir, "links.csv")
+    # preprocessing_ratings(ratings_file)
+    # preprocessing_movies(movies_file)
+    # preprocessing_links(links_file)
+    preprocessing_users(138493)
