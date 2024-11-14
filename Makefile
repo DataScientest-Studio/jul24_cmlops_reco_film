@@ -36,23 +36,25 @@ setup1:
 
 # Setup: Build all services and load data
 setup2: network
-	cd postgres && docker compose pull
+	cd postgres && docker compose up --build --no-start
+	docker compose up --build --no-start
 	cd airflow && echo "AIRFLOW_UID=$(shell id -u)" >> .env
-	cd airflow && docker compose up airflow-init
-	docker compose build
-	cd postgres && docker compose up --build -d
+	cd airflow && docker compose up --build --no-start
 	@echo "##########################"
 	@echo "Run 'make start' to start the services"
 
 # Start: start all services
 start: network
 	cd postgres && docker compose up -d
-	cd airflow && docker compose up -d
 	docker compose up -d
+	cd airflow && docker compose up -d
 	@echo "##########################"
 	@echo "Pg Admin: http://127.0.0.1:5431"
-	@echo "airflow: http://localhost:8080"
-	@echo "streamlit: http://localhost:8501"
+	@echo "Airflow: http://localhost:8081"
+	@echo "Streamlit: http://localhost:8501"
+	@echo "FastAPI: http://localhost:8001/docs"
+	@echo "Grafana: http://localhost:3000"
+	@echo "MlFlow: http://localhost:5000"
 
 # Stop: stop all services
 stop:

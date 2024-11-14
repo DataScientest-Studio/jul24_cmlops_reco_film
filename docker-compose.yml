@@ -70,7 +70,6 @@ services:
     volumes:
       - ./ml/models/:/data/model
 
-
   ### FASTAPI --------------------
   fastapi:
     build:
@@ -87,6 +86,11 @@ services:
     networks:
       - backend
     container_name: fastapi
+    develop:
+      watch:
+        - path: ./
+          target: /app
+          action: sync+restart
 
   ### STREAMLIT --------------------
   streamlit:
@@ -140,7 +144,6 @@ services:
     networks:
       - backend
 
-
 volumes:
   shared_prometheus:
   postgres-db-volume-mlflow:
@@ -151,4 +154,3 @@ networks:
   backend:
     name: backend
     external: true
-
