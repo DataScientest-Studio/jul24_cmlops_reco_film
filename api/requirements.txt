@@ -14,3 +14,5 @@ rapidfuzz
 scipy
 scikit-surprise
 sqlalchemy
+psycopg2
+passlib

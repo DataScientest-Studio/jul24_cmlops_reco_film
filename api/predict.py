@@ -16,6 +16,9 @@ from typing import List, Dict, Any, Optional
 from prometheus_client import Counter, Histogram, CollectorRegistry
 import time
 from pydantic import BaseModel
+from scipy.sparse import csr_matrix
+from scipy import sparse
+
 
 # ROUTEUR POUR GERER LES ROUTES PREDICT
 
@@ -61,8 +64,8 @@ def load_model(pkl_files, directory = "/app/model") :
         print(f'Modèle chargé depuis {filepath}')
     return model
 
-# Fonction pour obtenir des recommandations
-def get_recommendations(user_id: int, model: SVD, ratings_df: pd.DataFrame, n_recommendations: int = 10):
+# Fonction pour obtenir des recommandations pour un utilisateur donné
+def get_user_recommendations(user_id: int, model: SVD, ratings_df: pd.DataFrame, n_recommendations: int = 10):
     """Obtenir des recommandations pour un utilisateur donné."""
     # Créer un DataFrame contenant tous les films
     all_movies = ratings_df['movieId'].unique()
@@ -85,36 +88,56 @@ def get_recommendations(user_id: int, model: SVD, ratings_df: pd.DataFrame, n_re
     return top_n  # Retourner les meilleures recommandations
 
 
+def get_movie_title_recommendations(movie_id, X, movie_mapper, movie_inv_mapper, k, metric='cosine'):
+    """
+    Trouve les k voisins les plus proches pour un ID de film donné.
 
-# Fonction recommendation si utilisateur inconnu
-def get_content_based_recommendations(cosine_sim, title, n_recommendations=10):
-    # Récupérer l'ID du film à partir du titre
-    idx = movie_idx[title]
-    # Trouver l'index correspondant dans la matrice de similarité
-    sim_scores = list(enumerate(cosine_sim[idx]))
-    # Trier les films par score de similarité
-    sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)
-    # Obtenir les n recommandations (en ignorant le premier qui est le film lui-même)
-    sim_scores = sim_scores[1:(n_recommendations + 1)]
-    # Récupérer les indices des films similaires
-    similar_movies_indices = [i[0] for i in sim_scores]
-    # Récupérer les movieId correspondants
-    similar_movies_ids = movies['movieId'].iloc[similar_movies_indices].tolist()
-    return similar_movies_ids  # Retourner les IDs des films similaires
+    Args:
+        movie_id: ID du film d'intérêt
+        X: matrice d'utilité utilisateur-article (matrice creuse)
+        k: nombre de films similaires à récupérer
+        metric: métrique de distance pour les calculs kNN
 
-# Validation de l'utilisateur
-def validate_userId(userId):
-    # Vérifier si userId est dans la plage valide
-    if userId < 1 or userId > 138493:
-        return "Le numéro d'utilisateur doit être compris entre 1 et 138493."
-    return None
+    Output: retourne une liste des k ID de films similaires
+    """
+    # Transposer la matrice X pour que les films soient en lignes et les utilisateurs en colonnes
+    X = X.T
+    neighbour_ids = []  # Liste pour stocker les ID des films similaires
+
+    # Obtenir l'index du film à partir du mapper
+    movie_ind = movie_mapper[movie_id]
+
+    # Extraire le vecteur correspondant au film spécifié
+    movie_vec = X[movie_ind]
+
+    # Vérifier si movie_vec est un tableau NumPy et le remodeler en 2D si nécessaire
+    if isinstance(movie_vec, (np.ndarray)):
+        movie_vec = movie_vec.reshape(1, -1)  # Reshape pour avoir une forme (1, n_features)
+
+    # Initialiser NearestNeighbors avec k+1 car nous voulons inclure le film lui-même dans les voisins
+    kNN = NearestNeighbors(n_neighbors=k + 1, algorithm="brute", metric=metric)
+
+    # Ajuster le modèle sur la matrice transposée (films comme lignes)
+    kNN.fit(X)
+
+    # Trouver les k+1 voisins les plus proches (y compris le film d'intérêt)
+    neighbour = kNN.kneighbors(movie_vec, return_distance=False)
+
+    # Collecter les ID des films parmi les voisins trouvés
+    for i in range(0, k):  # Boucler jusqu'à k pour obtenir seulement les films similaires
+        n = neighbour.item(i)  # Obtenir l'index du voisin
+        neighbour_ids.append(movie_inv_mapper[n])  # Mapper l'index à l'ID du film
+
+    neighbour_ids.pop(0)  # Retirer le premier élément qui est l'ID du film original
+
+    return neighbour_ids  # Retourner la liste des ID de films similaires
+
 
 # Recherche un titre proche de la requete
 def movie_finder(title):
     all_titles = movies['title'].tolist()
     closest_match = process.extractOne(title,all_titles)
     return closest_match[0]
-
 
 # ---------------------------------------------------------------
 
@@ -161,7 +184,7 @@ ratings = read_ratings('processed_ratings.csv')
 movies = read_movies('processed_movies.csv')
 links = read_links('processed_links.csv')
 # Chargement d'un modèle SVD pré-entraîné pour les recommandations
-model_svd = load_model('model_svd.pkl')
+model_svd = load_model('model_SVD.pkl')
 # Chargement de la matrice cosinus similarity
 cosine_sim = load_model('cosinus_similarity.pkl')
 print(f"Dimensions of our genres cosine similarity matrix: {cosine_sim.shape}")
@@ -182,10 +205,10 @@ print("FIN DES CHARGEMENTS")
 # Modèle Pydantic pour la récupération de l'user_id lié aux films
 class UserRequest(BaseModel):
     userId: Optional[int] = None  # Nom d'utilisateur
-    movie_title : str # Nom du film
+    movie_title : Optional[str] = None  # Nom du film
 
-# Route API concernant les utilisateurs déjà identifiés
-@router.post("/identified_user")
+# Route API concernant les utilisateurs déjà identifiés avec titre de films
+@router.post("/movie_title")
 async def predict(user_request: UserRequest) -> Dict[str, Any]:
     """
     Route API pour obtenir des recommandations de films basées sur l'ID utilisateur.
@@ -196,7 +219,7 @@ async def predict(user_request: UserRequest) -> Dict[str, Any]:
     # Démarrer le chronomètre pour mesurer la durée de la requête
     start_time = time.time()
     # Incrémenter le compteur de requêtes pour prometheus
-    nb_of_requests_counter.labels(method='POST', endpoint='/identified_user').inc()
+    nb_of_requests_counter.labels(method='POST', endpoint='/movie_title').inc()
     # Récupération des données Streamlit
     print({"user_request" : user_request})
     movie_title = movie_finder(user_request.movie_title)  # Trouver le titre du film correspondant
@@ -230,38 +253,47 @@ async def predict(user_request: UserRequest) -> Dict[str, Any]:
     return result
 
 # Route Api concernant les nouveaux utilisateurs
-@router.post("/new_user")
+@router.post("/user_Id")
 async def predict(user_request: UserRequest) -> Dict[str, Any]:
     """
-    Route API pour obtenir des recommandations de films basées sur le contenu. .
-    Args: user_request (UserRequest): Un objet contenant les détails de la requête de l'utilisateur, ici seulement le titre du film.
+    Route API pour obtenir des recommandations de films basées sur l'ID utilisateur.
+    Args: user_request (UserRequest): Un objet contenant les détails de la requête de l'utilisateur, y compris l'ID utilisateur et le titre du film.
     Returns:
         Dict[str, Any]: Un dictionnaire contenant le choix de l'utilisateur et les recommandations de films.
     """
     # Démarrer le chronomètre pour mesurer la durée de la requête
     start_time = time.time()
     # Incrémenter le compteur de requêtes pour prometheus
-    nb_of_requests_counter.labels(method='POST', endpoint='/new_user').inc()
+    nb_of_requests_counter.labels(method='POST', endpoint='/user_Id').inc()
     # Récupération des données Streamlit
+    print({"user_request" : user_request})
     movie_title = movie_finder(user_request.movie_title)  # Trouver le titre du film correspondant
+    user_id = user_request.userId  # Récupérer l'ID utilisateur depuis la requête
+    # Validation de l'ID utilisateur
+    userId_error = validate_userId(user_id)
+    if userId_error:
+        error_counter.labels(error_type='invalid_userId').inc()  # Incrémenter le compteur d'erreurs
+        raise HTTPException(status_code=400, detail=userId_error)  # Lever une exception si l'ID est invalide
     # Récupération de l'ID du film à partir du titre
     movie_id = int(movies['movieId'][movies['title'] == movie_title].iloc[0])
-    similar_movies = get_content_based_recommendations(cosine_sim, movie_title, n_recommendations=10)
+    # Récupérer les ID des films recommandés en utilisant la fonction de similarité
+    recommendations = get_recommendations(user_id, model_svd, ratings)
     # Obtenir le titre et la couverture du film choisi par l'utilisateur
-    user_movie_title = movie_titles[movie_id]
-    user_movie_cover = movie_covers[movie_id]
+    movie_title = movie_titles[movie_id]
+    movie_cover = movie_covers[movie_id]
     # Créer un dictionnaire pour stocker les titres et les couvertures des films recommandés
     result = {
-        "user_choice": {"title": user_movie_title, "cover": user_movie_cover},
-        "recommendations": [{"title": movie_titles[i], "cover": movie_covers[i]} for i in similar_movies]}
+        "user_choice": {"title": movie_title, "cover": movie_cover},
+        "recommendations": [{"title": movie_titles[i], "cover": movie_covers[i]} for i in recommendations]
+    }
     # Mesurer la taille de la réponse et l'enregistrer
     response_size = len(json.dumps(result))
     # Calculer la durée et enregistrer dans l'histogramme
     duration = time.time() - start_time
     # Enregistrement des métriques pour Prometheus
     status_code_counter.labels(status_code="200").inc()  # Compter les réponses réussies
-    duration_of_requests_histogram.labels(method='POST', endpoint='/new_user', user_id= None).observe(duration)  # Enregistrer la durée de la requête
-    response_size_histogram.labels(method='POST', endpoint='/new_user').observe(response_size)  # Enregistrer la taille de la réponse
+    duration_of_requests_histogram.labels(method='POST', endpoint='/identified_user', user_id=str(user_id)).observe(duration)  # Enregistrer la durée de la requête
+    response_size_histogram.labels(method='POST', endpoint='/identified_user').observe(response_size)  # Enregistrer la taille de la réponse
     print({"result_request_fastapi": result})  # Afficher le résultat dans la console pour le débogage
     return result
 

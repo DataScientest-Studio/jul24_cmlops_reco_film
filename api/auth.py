@@ -172,7 +172,7 @@ async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm,
     login_duration_histogram.labels(status_code='200').observe(duration)
     login_requests_counter.labels(status_code='200').inc()  # Incrémenter le compteur de succès
 
-    return {"access_token": token, "token_type": "bearer"}  # Retourne le token et son type
+    return {"access_token": token, "token_type": "bearer", "username": user.username}  # Retourne le token et son type ainsi que l'username
 
 # Fonction pour authentifier un utilisateur
 def authenticate_user(email: str, password: str, db: Session):
