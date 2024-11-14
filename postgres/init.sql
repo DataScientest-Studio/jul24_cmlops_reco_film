@@ -1,15 +1,4 @@
 
-
-CREATE TABLE IF NOT EXISTS users (
-    userId SERIAL PRIMARY KEY,
-    username VARCHAR(50) NOT NULL,
-    email VARCHAR(100) NOT NULL UNIQUE,
-    password VARCHAR(100) NOT NULL
-);
-
--- Charger les données à partir du fichier CSV
-COPY users(userId, username, email, password) FROM '/docker-entrypoint-initdb.d/users.csv' DELIMITER ',' CSV HEADER;
-
 CREATE TABLE IF NOT EXISTS movies (
     movieId SERIAL PRIMARY KEY,
     title VARCHAR(200) NOT NULL,
@@ -22,7 +11,7 @@ COPY movies(movieId, title, genres, year) FROM '/docker-entrypoint-initdb.d/proc
 
 CREATE TABLE IF NOT EXISTS ratings (
     id SERIAL PRIMARY KEY,
-    userId INT REFERENCES users(userId),
+    userId INT,
     movieId INT REFERENCES movies(movieId),
     rating FLOAT NOT NULL,
     timestamp INT,
@@ -41,3 +30,10 @@ CREATE TABLE IF NOT EXISTS links (
 
 -- Charger les données à partir du fichier CSV
 COPY links(movieId, imdbId, tmdbId) FROM '/docker-entrypoint-initdb.d/processed_links.csv' DELIMITER ',' CSV HEADER;
+
+CREATE TABLE IF NOT EXISTS users (
+    userId SERIAL PRIMARY KEY,
+    username VARCHAR(50) NOT NULL,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    hached_password VARCHAR(300) NOT NULL
+);
