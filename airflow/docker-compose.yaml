@@ -1,5 +1,3 @@
-version: '3.9'
-
 ### AIRFLOW
 
 x-airflow-common: &airflow-common
