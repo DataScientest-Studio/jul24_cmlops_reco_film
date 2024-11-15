@@ -7,6 +7,13 @@ from airflow.operators.python_operator import PythonOperator
 from datetime import datetime
 import os
 import pickle
+import mlflow
+
+# Configuration de MLflow
+mlflow.set_tracking_uri("http://mlflow_webserver:5000")
+EXPERIMENT_NAME = "Movie_Recommendation_Experiment"
+time = datetime.now()
+run_name = f"{time}_Modèle KNN"
 
 def read_ratings(ratings_csv: str, data_dir: str = "/opt/airflow/data/raw") -> pd.DataFrame:
     """Reads the CSV file containing movie ratings."""
@@ -27,11 +34,14 @@ def create_X(df):
 
     X = csr_matrix((df["rating"], (user_index, item_index)), shape=(M, N))
 
-    return X
+    return X, user_mapper, movie_mapper, user_inv_mapper, movie_inv_mapper
 
-def train_model(X, k=10):
+def train_model(df, k=10):
     """Trains the KNN model on the training data."""
+    X, user_mapper, movie_mapper, user_inv_mapper, movie_inv_mapper = create_X(df)
+
     X = X.T  # Transpose to have users in rows
+
     kNN = NearestNeighbors(n_neighbors=k + 1, algorithm="brute", metric='cosine')
 
     model = kNN.fit(X)
@@ -47,17 +57,18 @@ def save_model(model, filepath: str) -> None:
 
 def run_training(**kwargs):
     """Main function to train the model."""
+     # Démarrer un nouveau run dans MLflow
+    with mlflow.start_run(run_name=run_name) as run:
+        # Load data
+        ratings = read_ratings('processed_ratings.csv')
+        # Train KNN model
+        model_knn = train_model(X)
+        save_model(model_knn, '/opt/airflow/model/')
 
-    # Load data
-    ratings = read_ratings('processed_ratings.csv')
-
-    # Create sparse matrix from ratings
-    X = create_X(ratings)
-
-    # Train KNN model
-    model_knn = train_model(X)
-
-    save_model(model_knn, '/opt/airflow/model/')
+        # Enregistrer les métriques dans MLflow pour suivi ultérieur
+        mlflow.log_param("n_neighbors", 11)
+        mlflow.log_param("algorithm", "brute")
+        mlflow.log_param("metric", "cosine")
 
 # Define Airflow DAG
 my_dag = DAG(
@@ -67,7 +78,7 @@ my_dag = DAG(
     schedule_interval='@daily',
     default_args={
         'owner': 'airflow',
-        'start_date': datetime(2024, 10, 30),
+        'start_date': datetime(2024, 11, 15),
     }
 )
 

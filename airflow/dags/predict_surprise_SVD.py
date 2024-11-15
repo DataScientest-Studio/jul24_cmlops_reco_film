@@ -14,7 +14,7 @@ from datetime import datetime
 mlflow.set_tracking_uri("http://mlflow_webserver:5000")
 EXPERIMENT_NAME = "Movie_Recommendation_Experiment"
 time = datetime.now()
-run_name = f"{time}"
+run_name = f"{time}_Modèle SVD"
 
 def read_ratings(ratings_csv: str, data_dir: str = "/opt/airflow/data/raw") -> pd.DataFrame:
     """Lit le fichier CSV contenant les évaluations des films."""
