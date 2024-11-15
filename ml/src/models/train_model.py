@@ -5,7 +5,10 @@ from surprise.prediction_algorithms.matrix_factorization import SVD
 from surprise.model_selection import train_test_split
 from surprise import accuracy
 import pickle
-from datetime import datetime  # Importer le module datetime pour mesurer le temps d'exécution
+from datetime import datetime
+from scipy.sparse import csr_matrix
+from sklearn.neighbors import NearestNeighbors
+import numpy as np
 
 
 def read_ratings(ratings_csv: str) -> pd.DataFrame:
@@ -55,17 +58,14 @@ def read_ratings(ratings_csv: str) -> pd.DataFrame:
         raise  # Relancer l'exception pour signaler l'erreur
 
 
-def train_model() -> tuple:
+def train_SVD_model(df) -> tuple:
     """Entraîne le modèle de recommandation sur les données fournies et retourne le modèle et son RMSE."""
 
     start_time = datetime.now()  # Démarrer la mesure du temps
 
-    # Charger les données d'évaluation des films
-    ratings = read_ratings('processed_ratings.csv')
-
     # Préparer les données pour Surprise
     reader = Reader(rating_scale=(0.5, 5))
-    data = Dataset.load_from_df(ratings[['userId', 'movieId', 'bayesian_mean']], reader=reader)
+    data = Dataset.load_from_df(df[['userId', 'movieId', 'bayesian_mean']], reader=reader)
 
     # Diviser les données en ensembles d'entraînement et de test
     trainset, testset = train_test_split(data, test_size=0.25)
@@ -99,5 +99,80 @@ def train_model() -> tuple:
     duration = end_time - start_time
     print(f'Durée de l\'entraînement : {duration}')
 
+
+def create_X(df):
+    """
+    Génère une matrice creuse avec quatre dictionnaires de mappage
+    - user_mapper: mappe l'ID utilisateur à l'index utilisateur
+    - movie_mapper: mappe l'ID du film à l'index du film
+    - user_inv_mapper: mappe l'index utilisateur à l'ID utilisateur
+    - movie_inv_mapper: mappe l'index du film à l'ID du film
+    Args:
+        df: pandas dataframe contenant 3 colonnes (userId, movieId, rating)
+
+    Returns:
+        X: sparse matrix
+        user_mapper: dict that maps user id's to user indices
+        user_inv_mapper: dict that maps user indices to user id's
+        movie_mapper: dict that maps movie id's to movie indices
+        movie_inv_mapper: dict that maps movie indices to movie id's
+    """
+    M = df['userId'].nunique()
+    N = df['movieId'].nunique()
+
+    user_mapper = dict(zip(np.unique(df["userId"]), list(range(M))))
+    movie_mapper = dict(zip(np.unique(df["movieId"]), list(range(N))))
+
+    user_inv_mapper = dict(zip(list(range(M)), np.unique(df["userId"])))
+    movie_inv_mapper = dict(zip(list(range(N)), np.unique(df["movieId"])))
+
+    user_index = [user_mapper[i] for i in df['userId']]
+    item_index = [movie_mapper[i] for i in df['movieId']]
+
+    X = csr_matrix((df["rating"], (user_index,item_index)), shape=(M,N))
+
+    return X, user_mapper, movie_mapper, user_inv_mapper, movie_inv_mapper
+
+
+def train_matrix_model(df, k = 10, metric='cosine'):
+    """
+    Entrainement et sauvegarde du modèle KNN pour la matrice creuse X"
+
+    Args:
+        X: matrice d'utilité utilisateur-article (matrice creuse)
+        k: nombre de films similaires à récupérer
+        metric: métrique de distance pour les calculs kNN
+
+    Output: Sauvegarde du modèle
+    """
+    # Démarrer la mesure du temps
+    start_time = datetime.now()
+    X, user_mapper, movie_mapper, user_inv_mapper, movie_inv_mapper = create_X(df)
+    # Transposer la matrice X pour que les films soient en lignes et les utilisateurs en colonnes
+    X = X.T
+    # Initialiser NearestNeighbors avec k+1 car nous voulons inclure le film lui-même dans les voisins
+    kNN = NearestNeighbors(n_neighbors=k + 1, algorithm="brute", metric=metric)
+
+    kNN.fit(X)
+
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    output_dir = os.path.join(base_dir, "..", "..", "models")
+
+    directory = os.path.join(output_dir, 'model_KNN.pkl')
+
+    with open(directory, 'wb') as file:
+        pickle.dump(kNN, file)
+        print(f'Modèle KNN sauvegardé sous {directory}')
+
+    end_time = datetime.now()  # Fin de la mesure du temps
+
+    # Calculer et afficher la durée totale de l'entraînement
+    duration = end_time - start_time
+    print(f'Durée de l\'entraînement : {duration}')
+
 if __name__ == "__main__":
-    train_model()
+    ratings = read_ratings('processed_ratings.csv')
+    # print('Entrainement du modèle SVD')
+    # train_SVD_model(ratings)
+    print('Entrainement du modèle CSR Matrix')
+    train_matrix_model(ratings)
