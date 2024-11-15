@@ -7,17 +7,15 @@ if "is_logged_in" not in st.session_state or not st.session_state.is_logged_in:
 
 # Récupérer le token depuis la session
 token = st.session_state.get('token')
+userId = st.session_state.get('user_id')
+username = st.session_state.get('username')
 
-# Faire une requête pour obtenir les informations de l'utilisateur
-headers = {"Authorization": f"Bearer {token}"}
-response = requests.get("http://fastapi:8002/", headers=headers)
+st.write(f"Bienvenue {username} 💪. Voici les 10 films que nous vous recommandons:")
 
-if response.status_code == 200:
-    user_info = response.json()
-    username = user_info.get('User', {}).get('username')
-    st.write(f"Bienvenue {username} 💪. Voici les 10 films que nous vous recommandons :")
-else:
-    st.error("Erreur lors de la récupération des informations utilisateur")
+response = requests.post("http://fastapi:8000/predict/identified_user",
+        json={"userId": userId})
+
+
 
 
 with st.form("user_info", clear_on_submit=True):

@@ -32,8 +32,7 @@ with tabs[0]:
             # Convertir le nom d'utilisateur en minuscules avant l'envoi
             normalized_username = username.lower()
 
-            response = requests.post("http://fastapi:8002/auth/", json={"username": normalized_username, "email": email, "password": password})
-            result = response.json()
+            response = requests.post("http://fastapi:8000/auth/", json={"username": normalized_username, "email": email, "password": password})
             if response.status_code == 201:  # Utilisateur créé avec succès
                 st.success(f"Inscription réussie !")
                 st.balloons()
@@ -53,19 +52,21 @@ with tabs[1]:
         submitted = st.form_submit_button("Se connecter", use_container_width=True)
 
         if submitted:
+            try:
+                response = requests.post("http://fastapi:8000/auth/token",
+                                      data={"username": email, "password": password})
 
-            response = requests.post("http://fastapi:8002/auth/token", data={"email": email, "password": password})
-            st.session_state.email_conn = ""
-            st.session_state.password_conn = ""
-            result = response.json()
-            st.session_state.token = result['access_token']  # Stockez le token
-            st.session_state.is_logged_in = True
-            if response.status_code == 200:  # Utilisateur connecté
-                st.success(f"Connexion réussie !")
-                st.balloons()
-                st.session_state.is_logged_in = True
-                st.experimental_rerun()
-            else:
-                # Erreur d'utilisateur déjà enregistré
-                error_message = response.json().get("detail", "Une erreur est survenue.")
-                st.error(error_message)  # Afficher le message d'erreur détaillé
+                if response.status_code == 200:
+                    result = response.json()
+                    st.session_state.token = result.get('access_token')
+                    st.session_state.user_id = result.get('userId')
+                    st.session_state.username = result.get('username')
+                    st.session_state.is_logged_in = True
+                    st.success("Connexion réussie !")
+                    st.balloons()
+
+                else:
+                    error_message = response.json().get("detail", "Une erreur est survenue lors de la connexion.")
+                    st.error(error_message)
+            except Exception as e:
+                st.error(f"Une erreur est survenue: {str(e)}")
