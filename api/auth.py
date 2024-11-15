@@ -2,10 +2,8 @@ from datetime import timedelta, datetime
 from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-from sqlalchemy.orm import Session
 from starlette import status
-from database import SessionLocal
-from models import User
+from database import get_db_connection
 from passlib.context import CryptContext
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from jose import jwt, JWTError
@@ -14,7 +12,7 @@ from dotenv import load_dotenv
 from prometheus_client import Counter, Histogram, CollectorRegistry
 import time
 import re
-
+import psycopg2
 
 # Création d'un routeur pour gérer les routes d'authentification
 router = APIRouter(
@@ -45,13 +43,6 @@ class Token(BaseModel):
     access_token: str  # Le token d'accès
     token_type: str    # Type de token (généralement "bearer")
 
-# Fonction pour obtenir une session de base de données
-def get_db():
-    db = SessionLocal()  # Crée une nouvelle session de base de données
-    try:
-        yield db  # Renvoie la session pour utilisation
-    finally:
-        db.close()  # Ferme la session à la fin
 
 # Compteurs et histogrammes
 collector = CollectorRegistry()
@@ -115,75 +106,104 @@ def validate_password(password):
 
 # Route pour créer un nouvel utilisateur
 @router.post("/", status_code=status.HTTP_201_CREATED)
-async def create_user(db: Annotated[Session, Depends(get_db)], create_user_request: CreateUserRequest):
-    start_time = time.time()  # Démarrer le chronomètre
-    # Valider le nom d'utilisateur
+async def create_user(create_user_request: CreateUserRequest):
+    start_time = time.time()
+
+    # Validation checks
     username_error = validate_username(create_user_request.username)
     if username_error:
         error_counter.labels(error_type='invalid_username').inc()
         raise HTTPException(status_code=400, detail=username_error)
-    # Valider le mail
+
     mail_error = validate_email(create_user_request.email)
     if mail_error:
         error_counter.labels(error_type='invalid_mail').inc()
         raise HTTPException(status_code=400, detail=mail_error)
 
-    # Valider le mot de passe
     password_error = validate_password(create_user_request.password)
     if password_error:
         error_counter.labels(error_type='invalid_password').inc()
         raise HTTPException(status_code=400, detail=password_error)
 
-    # Vérifiez si l'utilisateur existe déjà
-    existing_user = db.query(User).filter(User.email == create_user_request.email).first()
-    if existing_user:
-        error_counter.labels(error_type='username_already_registered').inc()
-        user_creation_counter.labels(status_code='400').inc()
-        raise HTTPException(status_code=400, detail="Email already registered")  # Erreur si l'utilisateur existe
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                # Vérifier si l'email existe déjà
+                cur.execute("SELECT email FROM users WHERE email = %s", (create_user_request.email,))
+                if cur.fetchone() is not None:
+                    error_counter.labels(error_type='username_already_registered').inc()
+                    user_creation_counter.labels(status_code='400').inc()
+                    raise HTTPException(status_code=400, detail="Email already registered")
 
-    # Créer le modèle utilisateur
-    create_user_model = User(
-        username=create_user_request.username,
-        email=create_user_request.email,
-        hashed_password=bcrypt_context.hash(create_user_request.password),  # Hachage du mot de passe
-    )
+                # Créer le nouvel utilisateur
+                hached_password = bcrypt_context.hash(create_user_request.password)
+                cur.execute(
+                    """
+                    INSERT INTO users (username, email, hached_password)
+                    VALUES (%s, %s, %s)
+                    RETURNING userid, username, email
+                    """,
+                    (create_user_request.username, create_user_request.email, hached_password)
+                )
+                conn.commit()
+                new_user = cur.fetchone()
 
-    db.add(create_user_model)  # Ajoute l'utilisateur à la session
-    db.commit()  # Commit les changements dans la base de données
-    db.refresh(create_user_model)  # Rafraîchit l'instance pour obtenir l'ID
+    except psycopg2.Error as e:
+        error_counter.labels(error_type='database_error').inc()
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
-    duration = time.time() - start_time  # Calculer la durée
+    duration = time.time() - start_time
     user_creation_duration_histogram.labels(status_code='201').observe(duration)
-    user_creation_counter.labels(status_code='201').inc()  # Incrémenter le compteur de succès
+    user_creation_counter.labels(status_code='201').inc()
 
-    return create_user_model  # Retourne le modèle utilisateur créé
+    return {
+        "userId": new_user[0],
+        "username": new_user[1],
+        "email": new_user[2]
+    }
 
 # Route pour obtenir un token d'accès
 @router.post("/token", response_model=Token)
-async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: Annotated[Session, Depends(get_db)]):
-    start_time = time.time()  # Démarrer le chronomètre
-    user = authenticate_user(form_data.email, form_data.password, db)  # Authentifie l'utilisateur
+async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
+    start_time = time.time()
+    user = await authenticate_user(form_data.username, form_data.password)
     if not user:
         login_requests_counter.labels(status_code='401').inc()
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Could not validate user.')  # Erreur si l'authentification échoue
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Could not validate user.')
 
-    token = create_access_token(user.email, user.id, timedelta(minutes=30))  # Crée un token d'accès
-    duration = time.time() - start_time  # Calculer la durée
+    token = create_access_token(user['email'], user['userId'], timedelta(minutes=30))
+    duration = time.time() - start_time
     login_duration_histogram.labels(status_code='200').observe(duration)
-    login_requests_counter.labels(status_code='200').inc()  # Incrémenter le compteur de succès
+    login_requests_counter.labels(status_code='200').inc()
 
-    return {"access_token": token, "token_type": "bearer", "username": user.username}  # Retourne le token et son type ainsi que l'username
+    return {"access_token": token, "token_type": "bearer", "username": user['username'], "userId": user['userId']}
 
-# Fonction pour authentifier un utilisateur
-def authenticate_user(email: str, password: str, db: Session):
-    user = db.query(User).filter(User.email == email).first()  # Récupère l'utilisateur par nom d'utilisateur
-    if not user:
-        login_requests_counter.labels(status_code='404').inc()
-        raise HTTPException(status_code=404, detail="Utilisateur non trouvé")  # Lève une exception si l'utilisateur n'existe pas
-    if not bcrypt_context.verify(password, user.hashed_password):  # Vérifie le mot de passe
-        login_requests_counter.labels(status_code='401').inc()
-        raise HTTPException(status_code=401, detail="Mot de passe incorrect")  # Lève une exception si le mot de passe est incorrect
-    return user  # Retourne l'utilisateur si l'authentification réussit
+async def authenticate_user(email: str, password: str):
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT userid, username, email, hached_password FROM users WHERE email = %s",
+                    (email,)
+                )
+                user = cur.fetchone()
+
+                if not user:
+                    login_requests_counter.labels(status_code='404').inc()
+                    raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
+
+                if not bcrypt_context.verify(password, user[3]):
+                    login_requests_counter.labels(status_code='401').inc()
+                    raise HTTPException(status_code=401, detail="Mot de passe incorrect")
+
+                return {
+                    'userId': user[0],
+                    'username': user[1],
+                    'email': user[2]
+                }
+    except psycopg2.Error as e:
+        error_counter.labels(error_type='database_error').inc()
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
 # Fonction pour créer un token d'accès
 def create_access_token(email: str, user_id: int, expires_delta: timedelta):
@@ -199,7 +219,7 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_bearer)]):
         email: str = payload.get('sub')  # Récupère le nom d'utilisateur
         user_id: int = payload.get('id')  # Récupère l'ID de l'utilisateur
         if email is None or user_id is None:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Could not validate user.')  # Erreur si les données sont manquantes
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Could not validate user.')  # Erreur si les donnees sont manquantes
         return {'email': email, 'id': user_id}  # Retourne les données de l'utilisateur
     except JWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Could not validate user')  # Erreur si le token est invalide

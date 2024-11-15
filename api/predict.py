@@ -12,13 +12,20 @@ from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 from rapidfuzz import process, fuzz, utils
 from fastapi import Request, APIRouter, HTTPException
+from database import get_db_connection
 from typing import List, Dict, Any, Optional
 from prometheus_client import Counter, Histogram, CollectorRegistry
 import time
 from pydantic import BaseModel
 from scipy.sparse import csr_matrix
 from scipy import sparse
+import psycopg2
+from dotenv import load_dotenv
 
+# Charger les variables d'environnement à partir du fichier .env
+load_dotenv()
+
+tmdb_token = os.getenv("TMDB_API_TOKEN")
 
 # ROUTEUR POUR GERER LES ROUTES PREDICT
 
@@ -27,7 +34,6 @@ router = APIRouter(
     tags=['predict']    # Tag pour la documentation
 )
 
-# ---------------------------------------------------------------
 
 # ENSEMBLE DES FONCTIONS UTILISEES
 
@@ -64,6 +70,39 @@ def load_model(pkl_files, directory = "/app/model") :
         print(f'Modèle chargé depuis {filepath}')
     return model
 
+def create_X(df):
+    """
+    Génère une matrice creuse avec quatre dictionnaires de mappage
+    - user_mapper: mappe l'ID utilisateur à l'index utilisateur
+    - movie_mapper: mappe l'ID du film à l'index du film
+    - user_inv_mapper: mappe l'index utilisateur à l'ID utilisateur
+    - movie_inv_mapper: mappe l'index du film à l'ID du film
+    Args:
+        df: pandas dataframe contenant 3 colonnes (userId, movieId, rating)
+
+    Returns:
+        X: sparse matrix
+        user_mapper: dict that maps user id's to user indices
+        user_inv_mapper: dict that maps user indices to user id's
+        movie_mapper: dict that maps movie id's to movie indices
+        movie_inv_mapper: dict that maps movie indices to movie id's
+    """
+    M = df['userId'].nunique()
+    N = df['movieId'].nunique()
+
+    user_mapper = dict(zip(np.unique(df["userId"]), list(range(M))))
+    movie_mapper = dict(zip(np.unique(df["movieId"]), list(range(N))))
+
+    user_inv_mapper = dict(zip(list(range(M)), np.unique(df["userId"])))
+    movie_inv_mapper = dict(zip(list(range(N)), np.unique(df["movieId"])))
+
+    user_index = [user_mapper[i] for i in df['userId']]
+    item_index = [movie_mapper[i] for i in df['movieId']]
+
+    X = csr_matrix((df["rating"], (user_index,item_index)), shape=(M,N))
+
+    return X, user_mapper, movie_mapper, user_inv_mapper, movie_inv_mapper
+
 # Fonction pour obtenir des recommandations pour un utilisateur donné
 def get_user_recommendations(user_id: int, model: SVD, ratings_df: pd.DataFrame, n_recommendations: int = 10):
     """Obtenir des recommandations pour un utilisateur donné."""
@@ -88,7 +127,7 @@ def get_user_recommendations(user_id: int, model: SVD, ratings_df: pd.DataFrame,
     return top_n  # Retourner les meilleures recommandations
 
 
-def get_movie_title_recommendations(movie_id, X, movie_mapper, movie_inv_mapper, k, metric='cosine'):
+def get_movie_title_recommendations(model, movie_id, X, movie_mapper, movie_inv_mapper, k):
     """
     Trouve les k voisins les plus proches pour un ID de film donné.
 
@@ -102,6 +141,7 @@ def get_movie_title_recommendations(movie_id, X, movie_mapper, movie_inv_mapper,
     """
     # Transposer la matrice X pour que les films soient en lignes et les utilisateurs en colonnes
     X = X.T
+
     neighbour_ids = []  # Liste pour stocker les ID des films similaires
 
     # Obtenir l'index du film à partir du mapper
@@ -114,14 +154,8 @@ def get_movie_title_recommendations(movie_id, X, movie_mapper, movie_inv_mapper,
     if isinstance(movie_vec, (np.ndarray)):
         movie_vec = movie_vec.reshape(1, -1)  # Reshape pour avoir une forme (1, n_features)
 
-    # Initialiser NearestNeighbors avec k+1 car nous voulons inclure le film lui-même dans les voisins
-    kNN = NearestNeighbors(n_neighbors=k + 1, algorithm="brute", metric=metric)
-
-    # Ajuster le modèle sur la matrice transposée (films comme lignes)
-    kNN.fit(X)
-
     # Trouver les k+1 voisins les plus proches (y compris le film d'intérêt)
-    neighbour = kNN.kneighbors(movie_vec, return_distance=False)
+    neighbour = model.kneighbors(movie_vec, return_distance=False)
 
     # Collecter les ID des films parmi les voisins trouvés
     for i in range(0, k):  # Boucler jusqu'à k pour obtenir seulement les films similaires
@@ -186,17 +220,14 @@ links = read_links('processed_links.csv')
 # Chargement d'un modèle SVD pré-entraîné pour les recommandations
 model_svd = load_model('model_SVD.pkl')
 # Chargement de la matrice cosinus similarity
-cosine_sim = load_model('cosinus_similarity.pkl')
-print(f"Dimensions of our genres cosine similarity matrix: {cosine_sim.shape}")
+model_Knn = load_model('model_KNN.pkl')
 # Merge de movies et links pour avoir un ix commun
 movies_links_df = movies.merge(links, on = "movieId", how = 'left')
 # Création de dictionnaires pour faciliter l'accès aux titres et aux couvertures des films par leur ID
 movie_idx = dict(zip(movies['title'], list(movies.index)))
-cover_idx = dict(zip(movies_links_df['cover_link'], list(movies_links_df.index)))
 # Création de dictionnaires pour accéder facilement aux titres et aux couvertures des films par leur ID
 movie_titles = dict(zip(movies['movieId'], movies['title']))
-movie_covers = dict(zip(links['movieId'], links['cover_link']))
-
+get_db_connection()
 print("FIN DES CHARGEMENTS")
 # ---------------------------------------------------------------
 
@@ -208,7 +239,7 @@ class UserRequest(BaseModel):
     movie_title : Optional[str] = None  # Nom du film
 
 # Route API concernant les utilisateurs déjà identifiés avec titre de films
-@router.post("/movie_title")
+@router.post("/identified_user")
 async def predict(user_request: UserRequest) -> Dict[str, Any]:
     """
     Route API pour obtenir des recommandations de films basées sur l'ID utilisateur.
@@ -219,38 +250,48 @@ async def predict(user_request: UserRequest) -> Dict[str, Any]:
     # Démarrer le chronomètre pour mesurer la durée de la requête
     start_time = time.time()
     # Incrémenter le compteur de requêtes pour prometheus
-    nb_of_requests_counter.labels(method='POST', endpoint='/movie_title').inc()
-    # Récupération des données Streamlit
-    print({"user_request" : user_request})
-    movie_title = movie_finder(user_request.movie_title)  # Trouver le titre du film correspondant
-    user_id = user_request.userId  # Récupérer l'ID utilisateur depuis la requête
-    # Validation de l'ID utilisateur
-    userId_error = validate_userId(user_id)
-    if userId_error:
-        error_counter.labels(error_type='invalid_userId').inc()  # Incrémenter le compteur d'erreurs
-        raise HTTPException(status_code=400, detail=userId_error)  # Lever une exception si l'ID est invalide
-    # Récupération de l'ID du film à partir du titre
-    movie_id = int(movies['movieId'][movies['title'] == movie_title].iloc[0])
+    nb_of_requests_counter.labels(method='POST', endpoint='/predict').inc()
+    # Récupération de l'email utilisateur de la session
+    userId = user_request.userId    # récupéartion de l'userId dans la base de données
     # Récupérer les ID des films recommandés en utilisant la fonction de similarité
-    recommendations = get_recommendations(user_id, model_svd, ratings)
-    # Obtenir le titre et la couverture du film choisi par l'utilisateur
-    movie_title = movie_titles[movie_id]
-    movie_cover = movie_covers[movie_id]
-    # Créer un dictionnaire pour stocker les titres et les couvertures des films recommandés
-    result = {
-        "user_choice": {"title": movie_title, "cover": movie_cover},
-        "recommendations": [{"title": movie_titles[i], "cover": movie_covers[i]} for i in recommendations]
-    }
+    recommendations = get_user_recommendations(userId, model_svd, ratings)
+
+    imdbId_list = movies_links_df.loc[movies_links_df['movieId'].isin(recommendations), 'imdbId'].tolist()
+
+    result_dict = {}
+
+    for i in range(10):
+        for j in imdbId_list:
+            result_dict[i] = api_tmdb_request(j)
+
     # Mesurer la taille de la réponse et l'enregistrer
-    response_size = len(json.dumps(result))
+    response_size = len(json.dumps(result_dict))
     # Calculer la durée et enregistrer dans l'histogramme
     duration = time.time() - start_time
     # Enregistrement des métriques pour Prometheus
     status_code_counter.labels(status_code="200").inc()  # Compter les réponses réussies
-    duration_of_requests_histogram.labels(method='POST', endpoint='/identified_user', user_id=str(user_id)).observe(duration)  # Enregistrer la durée de la requête
+    duration_of_requests_histogram.labels(method='POST', endpoint='/identified_user', user_id=str(userId)).observe(duration)  # Enregistrer la durée de la requête
     response_size_histogram.labels(method='POST', endpoint='/identified_user').observe(response_size)  # Enregistrer la taille de la réponse
-    print({"result_request_fastapi": result})  # Afficher le résultat dans la console pour le débogage
-    return result
+
+    return result_dict
+
+
+async def api_tmdb_request(external_id, extenal_source = 'imdb_id'):
+    url = f"https://api.themoviedb.org/3/find/tt0{external_id}?external_source={extenal_source}"
+    headers = {
+        "accept": "application/json",
+        "Authorization": f"Bearer {tmdb_token}"
+    }
+    response = requests.get(url, headers=headers)
+    response = response.json()
+    poster_path = response["movie_results"][0]["poster_path"]
+    vote_average = response["movie_results"][0]["vote_average"]
+    original_title = response["movie_results"][0]['original_title']
+    cover_url = "http://image.tmdb.org/t/p/w185"
+    return {"cover_link" : f"{cover_url}{poster_path}" , "vote_average" : vote_average, "original_title": original_title}
+
+
+
 
 # Route Api concernant les nouveaux utilisateurs
 @router.post("/user_Id")
