@@ -1,9 +1,16 @@
 import streamlit as st
 import requests
+import json
 
-# Initialisation de l'état de connexion si ce n'est pas déjà fait
+# Initialisation des variables de session si elles n'existent pas
 if 'is_logged_in' not in st.session_state:
     st.session_state.is_logged_in = False
+if 'token' not in st.session_state:
+    st.session_state.token = None
+if 'user_id' not in st.session_state:
+    st.session_state.user_id = None
+if 'username' not in st.session_state:
+    st.session_state.username = None
 
 st.title("Authentification")
 
@@ -53,20 +60,21 @@ with tabs[1]:
 
         if submitted:
             try:
-                response = requests.post("http://fastapi:8000/auth/token",
-                                      data={"username": email, "password": password})
+                response = requests.post(
+                    "http://fastapi:8000/auth/token",
+                    data={"username": email, "password": password})
 
                 if response.status_code == 200:
                     result = response.json()
-                    st.session_state.token = result.get('access_token')
-                    st.session_state.user_id = result.get('userId')
-                    st.session_state.username = result.get('username')
+                    st.session_state.token = result['access_token']
+                    st.session_state.username = result['username']
                     st.session_state.is_logged_in = True
-                    st.success("Connexion réussie !")
+                    st.success(f"Connexion réussie!")
                     st.balloons()
-
+                    st.switch_page("pages/5_📽️_Application.py")
                 else:
-                    error_message = response.json().get("detail", "Une erreur est survenue lors de la connexion.")
-                    st.error(error_message)
+                    st.error("Erreur d'authentification")
+
+
             except Exception as e:
-                st.error(f"Une erreur est survenue: {str(e)}")
+                st.error("Une erreur est survenue lors de la connexion")

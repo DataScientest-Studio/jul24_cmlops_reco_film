@@ -4,6 +4,11 @@ from typing import Annotated
 from auth import get_current_user, router as auth_router
 from predict import router as predict_router
 from prometheus_fastapi_instrumentator import Instrumentator
+import logging
+
+# Configurer le logger
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
@@ -22,5 +27,6 @@ app.include_router(predict_router)
 async def user(user: Annotated[dict, Depends(get_current_user)]):
     if user is None:
         raise HTTPException(status_code=401, detail='Authentication Failed')
+    logger.info(f"User: {user}")
     return {"User": user}
 

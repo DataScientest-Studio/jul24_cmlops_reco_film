@@ -46,6 +46,7 @@ setup2: network
 # Start: start all services
 start: network
 	cd postgres && docker compose up -d
+	./wait-for-it.sh 0.0.0.0:5430 --timeout=60 --strict -- echo "Database is up"
 	docker compose up -d
 	cd airflow && docker compose up -d
 	@echo "##########################"

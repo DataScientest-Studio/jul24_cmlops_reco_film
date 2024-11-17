@@ -172,7 +172,7 @@ def train_matrix_model(df, k = 10, metric='cosine'):
 
 if __name__ == "__main__":
     ratings = read_ratings('processed_ratings.csv')
-    # print('Entrainement du modèle SVD')
-    # train_SVD_model(ratings)
+    print('Entrainement du modèle SVD')
+    train_SVD_model(ratings)
     print('Entrainement du modèle CSR Matrix')
     train_matrix_model(ratings)

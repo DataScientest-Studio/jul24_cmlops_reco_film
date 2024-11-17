@@ -13,6 +13,11 @@ from prometheus_client import Counter, Histogram, CollectorRegistry
 import time
 import re
 import psycopg2
+import logging
+
+# Configurer le logger
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Création d'un routeur pour gérer les routes d'authentification
 router = APIRouter(
@@ -42,7 +47,6 @@ class CreateUserRequest(BaseModel):
 class Token(BaseModel):
     access_token: str  # Le token d'accès
     token_type: str    # Type de token (généralement "bearer")
-
 
 # Compteurs et histogrammes
 collector = CollectorRegistry()
@@ -107,6 +111,7 @@ def validate_password(password):
 # Route pour créer un nouvel utilisateur
 @router.post("/", status_code=status.HTTP_201_CREATED)
 async def create_user(create_user_request: CreateUserRequest):
+    logger.info(f"Requête reçue création utilisateur: {create_user_request}")
     start_time = time.time()
 
     # Validation checks
@@ -128,7 +133,6 @@ async def create_user(create_user_request: CreateUserRequest):
     try:
         with get_db_connection() as conn:
             with conn.cursor() as cur:
-                # Vérifier si l'email existe déjà
                 cur.execute("SELECT email FROM users WHERE email = %s", (create_user_request.email,))
                 if cur.fetchone() is not None:
                     error_counter.labels(error_type='username_already_registered').inc()
@@ -137,16 +141,9 @@ async def create_user(create_user_request: CreateUserRequest):
 
                 # Créer le nouvel utilisateur
                 hached_password = bcrypt_context.hash(create_user_request.password)
-                cur.execute(
-                    """
-                    INSERT INTO users (username, email, hached_password)
-                    VALUES (%s, %s, %s)
-                    RETURNING userid, username, email
-                    """,
-                    (create_user_request.username, create_user_request.email, hached_password)
-                )
+                cur.execute("INSERT INTO users (username, email, hached_password) VALUES (%s, %s, %s)", (create_user_request.username, create_user_request.email, hached_password,))
                 conn.commit()
-                new_user = cur.fetchone()
+                print("transaction validée")
 
     except psycopg2.Error as e:
         error_counter.labels(error_type='database_error').inc()
@@ -156,17 +153,14 @@ async def create_user(create_user_request: CreateUserRequest):
     user_creation_duration_histogram.labels(status_code='201').observe(duration)
     user_creation_counter.labels(status_code='201').inc()
 
-    return {
-        "userId": new_user[0],
-        "username": new_user[1],
-        "email": new_user[2]
-    }
 
 # Route pour obtenir un token d'accès
 @router.post("/token", response_model=Token)
 async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
+    logger.info(f"Requête reçue identification: {form_data}")
     start_time = time.time()
     user = await authenticate_user(form_data.username, form_data.password)
+    logger.info(f"Retour fonction authenticate_user: {user}")
     if not user:
         login_requests_counter.labels(status_code='401').inc()
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Could not validate user.')
@@ -176,7 +170,16 @@ async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm,
     login_duration_histogram.labels(status_code='200').observe(duration)
     login_requests_counter.labels(status_code='200').inc()
 
-    return {"access_token": token, "token_type": "bearer", "username": user['username'], "userId": user['userId']}
+    # Modification de la structure de réponse pour garantir la cohérence
+    response = {
+        "access_token": token,
+        "token_type": "bearer",
+        "userId": int(user['userId']),  # Assurer que c'est un entier
+        "username": user['username']
+    }
+    # Logging pour debug
+    logger.info(f"Retour de la requête: {response}")
+    return response
 
 async def authenticate_user(email: str, password: str):
     try:
@@ -196,14 +199,20 @@ async def authenticate_user(email: str, password: str):
                     login_requests_counter.labels(status_code='401').inc()
                     raise HTTPException(status_code=401, detail="Mot de passe incorrect")
 
-                return {
-                    'userId': user[0],
+                # Modification de la structure retournée pour garantir la cohérence
+                user_data = {
+                    'userId': int(user[0]),  # Conversion explicite en int
                     'username': user[1],
                     'email': user[2]
                 }
+                logger.info(f"Type de userId dans authenticate_user: {type(user_data['userId'])}")
+                logger.info(f"Valeur de userId dans authenticate_user: {user_data['userId']}")
+                return user_data
+
     except psycopg2.Error as e:
         error_counter.labels(error_type='database_error').inc()
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
 
 # Fonction pour créer un token d'accès
 def create_access_token(email: str, user_id: int, expires_delta: timedelta):

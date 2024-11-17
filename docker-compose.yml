@@ -86,11 +86,6 @@ services:
     networks:
       - backend
     container_name: fastapi
-    develop:
-      watch:
-        - path: ./
-          target: /app
-          action: sync+restart
 
   ### STREAMLIT --------------------
   streamlit:

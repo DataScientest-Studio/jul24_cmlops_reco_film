@@ -1,64 +1,82 @@
 import streamlit as st
 import requests
+from utils import display_movies_grid
 
-if "is_logged_in" not in st.session_state or not st.session_state.is_logged_in:
+
+# Charger le CSS
+with open("style.css") as f:
+    st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+
+# Vérification plus robuste de l'authentification
+if not st.session_state.get('is_logged_in', False):
     st.warning("Veuillez vous connecter pour accéder à cette page.")
+    st.switch_page("pages/4_🔐_Authentification.py")
     st.stop()
+
+
+# Utilisation des headers avec le token pour l'authentification
+headers = {
+    "Authorization": f"Bearer {st.session_state.token}"
+}
 
 # Récupérer le token depuis la session
 token = st.session_state.get('token')
-userId = st.session_state.get('user_id')
-username = st.session_state.get('username')
-
-st.write(f"Bienvenue {username} 💪. Voici les 10 films que nous vous recommandons:")
-
-response = requests.post("http://fastapi:8000/predict/identified_user",
-        json={"userId": userId})
 
 
+st.write(f"Bienvenue 💪. Voici les 10 films que nous vous recommandons:")
 
+try:
+    response = requests.get(
+        "http://fastapi:8000/",
+        json={"token": token},
+        headers=headers
+    )
+    result = response.json()
+    user_id = result.get('id')
+except Exception as e:
+    st.error(f"Erreur de requête: {str(e)}")
 
-with st.form("user_info", clear_on_submit=True):
-    st.write("Renseignez votre n° d'utilisateur")
-    user_id_input = st.text_input("Numéro utilisateur")
-    st.write("Indiquez le titre du film sur lequel faire nos recommandations")
-    title = st.text_input("Film")
-    submitted = st.form_submit_button("Soumettre", use_container_width= True )
+# Récupérer les recommandations pour l'utilisateur
+try:
+    payload = {"userId": user_id}
+    response = requests.post(
+        "http://fastapi:8000/predict/identified_user",
+        json=payload,
+        headers=headers
+    )
 
-    if submitted:
-        # Envoyer la requête POST
-        response = requests.post(
-        "http://fastapi:6060/predict/identified_user",
-        json={"userId": user_id_input, "movie_title": title}
-        )
+    if response.status_code == 200:
+        result = response.json()
+        recommendations = [result.get(i) for i in range(10)]
+        display_movies_grid(recommendations)
+    else:
+        st.error(f"Erreur lors de la requête : {response.status_code} - {response.text}")
+except ValueError as e:
+    st.error("Erreur de conversion de l'ID utilisateur")
+    st.stop()
+except Exception as e:
+    st.error(f"Erreur de requête: {str(e)}")
 
-        # Vérifier la réponse
-        if response.status_code == 200:
-            result = response.json()
-            st.write("Film sélectionné :")
-            user_choice = result['user_choice']
-            caption = f"{user_choice['title']}"
-            st.image(user_choice["cover"], caption=caption, width=180)
-            st.write("Nos 10 recommandations :")
-            recommended_movies = result['recommendations']
+# Ajouter une ligne horizontale
+st.markdown("---")
 
-            # Créer des colonnes pour afficher les 5 premières recommandations
-            cols_recommended_movies = st.columns(5)
-            for i, movie in enumerate(recommended_movies[:5]):
-                col_index = i % 5
-                with cols_recommended_movies[col_index]:
-                    caption = f"{movie['title']}"
-                    st.image(movie["cover"], caption=caption, use_column_width=True)
+st.write('Nous pouvons aussi vous faire des recommandations en relation avec un film. Entrez le nom d\'un film que vous avez aimé et nous vous recommanderons des films similaires.')
 
-            # Ajouter une ligne horizontale
-            st.markdown("---")
+# Demander à l'utilisateur de saisir le nom d'un film
 
-            # Créer des colonnes pour afficher les 5 suivantes recommandations
-            cols_recommended_movies_second_half = st.columns(5)
-            for i, movie in enumerate(recommended_movies[5:10]):
-                col_index = i % 5
-                with cols_recommended_movies_second_half[col_index]:
-                    caption = f"{movie['title']}"
-                    st.image(movie["cover"], caption=caption, use_column_width=True)
-        else:
-            st.error(f"Erreur lors de la requête : {response.status_code} - {response.text}")
+movie_name = st.text_input("Entrez le nom d'un film que vous avez aimé", "Inception")
+
+# Dans la partie recherche de films similaires
+if st.button("Rechercher"):
+    response = requests.post(
+        "http://fastapi:8000/predict/similar_movies",
+        json={"userId": st.session_state.user_id, "movie_name": movie_name},
+        headers=headers
+    )
+
+    if response.status_code == 200:
+        result = response.json()
+        recommendations = [result.get(i) for i in range(10)]
+        display_movies_grid(recommendations)
+    else:
+        st.error(f"Erreur lors de la requête : {response.status_code} - {response.text}")
