@@ -34,11 +34,11 @@ def create_X(df):
 
     X = csr_matrix((df["rating"], (user_index, item_index)), shape=(M, N))
 
-    return X, user_mapper, movie_mapper
+    return X
 
 def train_model(df, k=10):
     """Trains the KNN model on the training data."""
-    X, user_mapper, movie_mapper = create_X(df)
+    X = create_X(df)
 
     X = X.T  # Transpose to have users in rows
 
@@ -62,7 +62,7 @@ def run_training(**kwargs):
         # Load data
         ratings = read_ratings('processed_ratings.csv')
         # Train KNN model
-        model_knn = train_model(X)
+        model_knn = train_model(ratings)
         save_model(model_knn, '/opt/airflow/model/')
 
         # Enregistrer les métriques dans MLflow pour suivi ultérieur
