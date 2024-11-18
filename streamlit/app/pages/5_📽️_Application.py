@@ -1,7 +1,7 @@
 import streamlit as st
 import requests
 from utils import display_movies_grid
-
+import json
 
 # Charger le CSS
 with open("style.css") as f:
@@ -22,19 +22,19 @@ headers = {
 # Récupérer le token depuis la session
 token = st.session_state.get('token')
 
+response = requests.get(
+    "http://fastapi:8000/",
+    json={"token": token},
+    headers=headers
+)
+result = response.json()
+user_id = result['User']['id']
+username = result['User']['username']
+username = username.capitalize()
 
-st.write(f"Bienvenue 💪. Voici les 10 films que nous vous recommandons:")
+st.write(f"Bienvenue {username} !")
 
-try:
-    response = requests.get(
-        "http://fastapi:8000/",
-        json={"token": token},
-        headers=headers
-    )
-    result = response.json()
-    user_id = result.get('id')
-except Exception as e:
-    st.error(f"Erreur de requête: {str(e)}")
+st.write("Voici une recommandation de films au regard de vos notations :")
 
 # Récupérer les recommandations pour l'utilisateur
 try:
@@ -57,26 +57,26 @@ except ValueError as e:
 except Exception as e:
     st.error(f"Erreur de requête: {str(e)}")
 
-# Ajouter une ligne horizontale
-st.markdown("---")
+# # Ajouter une ligne horizontale
+# st.markdown("---")
 
-st.write('Nous pouvons aussi vous faire des recommandations en relation avec un film. Entrez le nom d\'un film que vous avez aimé et nous vous recommanderons des films similaires.')
+# st.write('Nous pouvons aussi vous faire des recommandations en relation avec un film. Entrez le nom d\'un film que vous avez aimé et nous vous recommanderons des films similaires.')
 
-# Demander à l'utilisateur de saisir le nom d'un film
+# # Demander à l'utilisateur de saisir le nom d'un film
 
-movie_name = st.text_input("Entrez le nom d'un film que vous avez aimé", "Inception")
+# movie_name = st.text_input("Entrez le nom d'un film que vous avez aimé", "Inception")
 
-# Dans la partie recherche de films similaires
-if st.button("Rechercher"):
-    response = requests.post(
-        "http://fastapi:8000/predict/similar_movies",
-        json={"userId": st.session_state.user_id, "movie_name": movie_name},
-        headers=headers
-    )
+# # Dans la partie recherche de films similaires
+# if st.button("Rechercher"):
+#     response = requests.post(
+#         "http://fastapi:8000/predict/similar_movies",
+#         json={"userId": st.session_state.user_id, "movie_name": movie_name},
+#         headers=headers
+#     )
 
-    if response.status_code == 200:
-        result = response.json()
-        recommendations = [result.get(i) for i in range(10)]
-        display_movies_grid(recommendations)
-    else:
-        st.error(f"Erreur lors de la requête : {response.status_code} - {response.text}")
+#     if response.status_code == 200:
+#         result = response.json()
+#         recommendations = [result.get(i) for i in range(10)]
+#         display_movies_grid(recommendations)
+#     else:
+#         st.error(f"Erreur lors de la requête : {response.status_code} - {response.text}")

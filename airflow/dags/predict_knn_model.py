@@ -34,11 +34,11 @@ def create_X(df):
 
     X = csr_matrix((df["rating"], (user_index, item_index)), shape=(M, N))
 
-    return X, user_mapper, movie_mapper, user_inv_mapper, movie_inv_mapper
+    return X, user_mapper, movie_mapper
 
 def train_model(df, k=10):
     """Trains the KNN model on the training data."""
-    X, user_mapper, movie_mapper, user_inv_mapper, movie_inv_mapper = create_X(df)
+    X, user_mapper, movie_mapper = create_X(df)
 
     X = X.T  # Transpose to have users in rows
 

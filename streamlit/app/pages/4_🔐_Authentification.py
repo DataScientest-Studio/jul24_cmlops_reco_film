@@ -67,14 +67,12 @@ with tabs[1]:
                 if response.status_code == 200:
                     result = response.json()
                     st.session_state.token = result['access_token']
-                    st.session_state.username = result['username']
                     st.session_state.is_logged_in = True
                     st.success(f"Connexion réussie!")
                     st.balloons()
                     st.switch_page("pages/5_📽️_Application.py")
                 else:
                     st.error("Erreur d'authentification")
-
 
             except Exception as e:
                 st.error("Une erreur est survenue lors de la connexion")

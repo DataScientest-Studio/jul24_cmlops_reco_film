@@ -227,8 +227,18 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_bearer)]):
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])  # Décode le token
         email: str = payload.get('sub')  # Récupère le nom d'utilisateur
         user_id: int = payload.get('id')  # Récupère l'ID de l'utilisateur
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT userid, username FROM users WHERE userid = %s",
+                    (user_id,)
+                )
+                user = cur.fetchone()
+                username = user[1]
         if email is None or user_id is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Could not validate user.')  # Erreur si les donnees sont manquantes
-        return {'email': email, 'id': user_id}  # Retourne les données de l'utilisateur
+        response = {'email': email, 'id': user_id, 'username': username}  # Retourne les données de l'utilisateur
+        logger.info(f"Utilisateur actuel: {response}")
+        return response # Retourne les données de l'utilisateur
     except JWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Could not validate user')  # Erreur si le token est invalide

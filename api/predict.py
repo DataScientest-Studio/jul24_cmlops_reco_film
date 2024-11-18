@@ -136,6 +136,7 @@ def get_user_recommendations(user_id: int, model: SVD, ratings_df: pd.DataFrame,
 
     # Trier les prédictions par note prédite (descendant) et prendre les meilleures n_recommendations
     top_n = sorted(predictions, key=lambda x: x[1], reverse=True)[:n_recommendations]
+    top_n = [i[0] for i in top_n]
 
     return top_n  # Retourner les meilleures recommandations
 
@@ -179,6 +180,41 @@ def get_movie_title_recommendations(model, movie_id, X, movie_mapper, movie_inv_
 
     return neighbour_ids  # Retourner la liste des ID de films similaires
 
+def format_movie_id(movie_id):
+    """Formate l'ID du film pour qu'il ait 7 chiffres."""
+    return str(movie_id).zfill(7)
+
+def api_tmdb_request(movie_ids):
+    """Effectue des requêtes à l'API TMDB pour récupérer les informations des films."""
+    results = {}
+
+    for index, movie_id in enumerate(movie_ids):
+        formatted_id = format_movie_id(movie_id)
+        url = f"https://api.themoviedb.org/3/find/tt{formatted_id}?external_source=imdb_id"
+
+        headers = {
+            "accept": "application/json",
+            "Authorization": f"Bearer {tmdb_token}"
+        }
+
+        response = requests.get(url, headers=headers)
+
+        if response.status_code == 200:
+            data = response.json()
+            if data["movie_results"]:
+                # On suppose que nous voulons le premier résultat
+                movie_info = data["movie_results"][0]
+                results[index] = {
+                    "title": movie_info["title"],
+                    "vote_average": movie_info["vote_average"],
+                    "poster_path": f"http://image.tmdb.org/t/p/w185{movie_info['poster_path']}"
+                }
+            else:
+                results[index] = {"error": "No movie results found"}
+        else:
+            results[index] = {"error": f"Request failed with status code {response.status_code}"}
+
+    return results
 
 # Recherche un titre proche de la requete
 def movie_finder(title):
@@ -242,6 +278,9 @@ movies_links_df = movies.merge(links, on = "movieId", how = 'left')
 movie_idx = dict(zip(movies['title'], list(movies.index)))
 # Création de dictionnaires pour accéder facilement aux titres et aux couvertures des films par leur ID
 movie_titles = dict(zip(movies['movieId'], movies['title']))
+# Créer un dictionnaire pour un accès rapide
+imdb_dict = dict(zip(movies_links_df['movieId'], movies_links_df['imdbId']))
+# test de connection à la base de données
 with get_db_connection() as conn:
             with conn.cursor() as cur:
                 cur.execute("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'")
@@ -293,44 +332,24 @@ async def predict(user_request: UserRequest) -> Dict[str, Any]:
         user_id = int(user_request.userId)
         recommendations = get_user_recommendations(user_id, model_svd, ratings)
         logger.info(f"Recommandations pour l'utilisateur {userId}: {recommendations}")
-        imdbId_list = movies_links_df.loc[movies_links_df['movieId'].isin(recommendations), 'imdbId'].tolist()
+        imdb_list = [imdb_dict[movie_id] for movie_id in recommandations if movie_id in imdb_dict]
+        results = api_tmdb_request(imdb_list)
 
-        result_dict = {}
-
-        for i in range(10):
-            for j in imdbId_list:
-                result_dict[i] = api_tmdb_request(j)
 
         # Mesurer la taille de la réponse et l'enregistrer
-        response_size = len(json.dumps(result_dict))
+        response_size = len(json.dumps(results))
         # Calculer la durée et enregistrer dans l'histogramme
         duration = time.time() - start_time
         # Enregistrement des métriques pour Prometheus
         status_code_counter.labels(status_code="200").inc()  # Compter les réponses réussies
-        duration_of_requests_histogram.labels(method='POST', endpoint='/predict', user_id=str(userId)).observe(duration)  # Enregistrer la durée de la requête
+        duration_of_requests_histogram.labels(method='POST', endpoint='/predict', user_id=str(user_id)).observe(duration)  # Enregistrer la durée de la requête
         response_size_histogram.labels(method='POST', endpoint='/predict').observe(response_size)  # Enregistrer la taille de la réponse
         # Utiliser le logger pour voir les résultats
         logger.info(f"Api response: {result_dict}")
-        return result_dict
+        return results
+
     except ValueError as e:
         raise HTTPException(status_code=400, detail="L'ID utilisateur doit être un nombre entier")
-
-
-async def api_tmdb_request(external_id, extenal_source = 'imdb_id'):
-    url = f"https://api.themoviedb.org/3/find/tt0{external_id}?external_source={extenal_source}"
-    headers = {
-        "accept": "application/json",
-        "Authorization": f"Bearer {tmdb_token}"
-    }
-    response = requests.get(url, headers=headers)
-    response = response.json()
-    poster_path = response["movie_results"][0]["poster_path"]
-    vote_average = response["movie_results"][0]["vote_average"]
-    original_title = response["movie_results"][0]['original_title']
-    cover_url = "http://image.tmdb.org/t/p/w185"
-    print({"cover_link" : f"{cover_url}{poster_path}" , "vote_average" : vote_average, "original_title": original_title})
-    return {"cover_link" : f"{cover_url}{poster_path}" , "vote_average" : vote_average, "original_title": original_title}
-
 
 
 # Route Api recommandation par rapport à un autre film
@@ -353,22 +372,18 @@ async def predict(user_request: UserRequest) -> Dict[str, Any]:
     movie_id = int(movies['movieId'][movies['title'] == movie_title].iloc[0])
     # Récupérer les ID des films recommandés en utilisant la fonction de similarité
     recommendations = get_movie_title_recommendations(model_Knn, movie_id, X, movie_mapper, movie_inv_mapper, 10)
-    imdbId_list = movies_links_df.loc[movies_links_df['movieId'].isin(recommendations), 'imdbId'].tolist()
-
-    result_dict = {}
-
-    for i in range(10):
-        for j in imdbId_list:
-            result_dict[i] = api_tmdb_request(j)
+    imdb_list = [imdb_dict[movie_id] for movie_id in recommandations if movie_id in imdb_dict]
+    results = api_tmdb_request(imdb_list)
 
     # Mesurer la taille de la réponse et l'enregistrer
-    response_size = len(json.dumps(result_dict))
+    response_size = len(json.dumps(results))
     # Calculer la durée et enregistrer dans l'histogramme
     duration = time.time() - start_time
     # Enregistrement des métriques pour Prometheus
     status_code_counter.labels(status_code="200").inc()  # Compter les réponses réussies
     duration_of_requests_histogram.labels(method='POST', endpoint='/predict').observe(duration)  # Enregistrer la durée de la requête
     response_size_histogram.labels(method='POST', endpoint='/identified_user').observe(response_size)  # Enregistrer la taille de la réponse
-    logger.info(f"Api response: {result_dict}")
-    return result_dict
+    logger.info(f"Api response: {results}")
+    response_size_histogram.labels(method='POST', endpoint='/identified_user').observe(response_size)  # Enregistrer la taille de la réponse
+    return results
 
