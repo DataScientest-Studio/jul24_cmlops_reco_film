@@ -1,12 +1,7 @@
 import pandas as pd
 import os
-import random
-import string
 from passlib.context import CryptContext
 from tqdm import tqdm
-
-# Contexte de hachage pour le mot de passe
-bcrypt_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
 
 # localisation du fichier
 base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -156,8 +151,8 @@ def preprocessing_links(links_file) -> pd.DataFrame:
    return df
 
 if __name__ == "__main__":
-    Chargement des datasets
-    Obtenir le répertoire du script actuel
+    # Chargement des datasets
+    # Obtenir le répertoire du script actuel
     base_dir = os.path.dirname(os.path.abspath(__file__))
     data_dir = os.path.join(base_dir, '..', '..', 'data', 'raw')
     ratings_file = os.path.join(data_dir, "ratings.csv")
