@@ -2,22 +2,17 @@ import pandas as pd
 import os
 import json
 import pickle
-from surprise import Dataset, Reader
 from surprise.prediction_algorithms.matrix_factorization import SVD
-from surprise import accuracy
 from scipy.sparse import csr_matrix
-from sklearn.neighbors import NearestNeighbors
-from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
-from rapidfuzz import process, fuzz, utils
-from fastapi import Request, APIRouter, HTTPException
+from rapidfuzz import process
+from fastapi import APIRouter, HTTPException
 from database import get_db_connection
-from typing import List, Dict, Any, Optional
+from typing import Dict, Any, Optional
 from prometheus_client import Counter, Histogram, CollectorRegistry
 import time
 from pydantic import BaseModel
 from scipy.sparse import csr_matrix
-from scipy import sparse
 import psycopg2
 from dotenv import load_dotenv
 import requests
@@ -204,15 +199,15 @@ def api_tmdb_request(movie_ids):
             if data["movie_results"]:
                 # On suppose que nous voulons le premier résultat
                 movie_info = data["movie_results"][0]
-                results[index] = {
+                results[str(index)] = {
                     "title": movie_info["title"],
-                    "vote_average": movie_info["vote_average"],
+                    "vote_average": movie_info['vote_average'],
                     "poster_path": f"http://image.tmdb.org/t/p/w185{movie_info['poster_path']}"
                 }
             else:
-                results[index] = {"error": "No movie results found"}
+                results[str(index)] = {"error": "No movie results found"}
         else:
-            results[index] = {"error": f"Request failed with status code {response.status_code}"}
+            results[str(index)] = {"error": f"Request failed with status code {response.status_code}"}
 
     return results
 
@@ -296,7 +291,7 @@ print("FIN DES CHARGEMENTS")
 
 # Modèle Pydantic pour la récupération de l'user_id lié aux films
 class UserRequest(BaseModel):
-    userId: int  # Forcer le type int explicitement
+    userId: Optional[int]  # Forcer le type int explicitement
     movie_title: Optional[str] = None
 
     class Config:
@@ -306,6 +301,48 @@ class UserRequest(BaseModel):
                 "movie_title": "Inception"
             }
         }
+
+@router.post("/best_user_movies")
+async def predict(user_request: UserRequest) -> Dict[str, Any]:
+    """
+    Route API pour récupérer les 3 films les mieux notés de l'utilisateur.
+    Args: user_request (UserRequest): Un objet contenant les détails de la requête de l'utilisateur, y compris l'ID utilisateur et le titre du film.
+    Returns:
+        Dict[str, Any]: Un dictionnaire contenant le choix de l'utilisateur et les recommandations de films.
+    """
+    logger.info(f"Requête reçue pour l'utilisateur identifié: {user_request}")
+    # Démarrer le chronomètre pour mesurer la durée de la requête
+    start_time = time.time()
+    # Incrémenter le compteur de requêtes pour prometheus
+    nb_of_requests_counter.labels(method='POST', endpoint='/predict/best_user_movies').inc()
+    # Récupération de l'email utilisateur de la session
+    userId = user_request.userId    # récupéartion de l'userId dans la base de données
+    # Récupérer les ID des films recommandés en utilisant la fonction de similarité
+    try:
+        # Forcer la conversion en int
+        user_id = int(user_request.userId)
+        df_user = ratings[ratings['userId'] == user_id]
+        df_user = df_user.sort_values(by='rating', ascending=False)
+        best_movies = df_user.head(3)
+        imdb_list = [imdb_dict[movie_id] for movie_id in best_movies['movieId'] if movie_id in imdb_dict]
+        results = api_tmdb_request(imdb_list)
+        # Mesurer la taille de la réponse et l'enregistrer
+        response_size = len(json.dumps(results))
+        # Calculer la durée et enregistrer dans l'histogramme
+        duration = time.time() - start_time
+        # Enregistrement des métriques pour Prometheus
+        status_code_counter.labels(status_code="200").inc()  # Compter les réponses réussies
+        duration_of_requests_histogram.labels(method='POST', endpoint='/predict/best_user_movies', user_id=str(user_id)).observe(duration)  # Enregistrer la durée de la requête
+        response_size_histogram.labels(method='POST', endpoint='/predict/best_user_movies').observe(response_size)  # Enregistrer la taille de la réponse
+        # Utiliser le logger pour voir les résultats
+        logger.info(f"Api response: {results}")
+        return results
+    except ValueError as e:
+        status_code_counter.labels(status_code="400").inc()  # Compter les réponses échouées
+        error_counter.labels(error_type="ValueError").inc()  # Enregistrer l'erreur spécifique
+        raise HTTPException(status_code=400, detail="L'ID utilisateur doit être un nombre entier")
+
+
 
 # Route API concernant les utilisateurs déjà identifiés avec titre de films
 @router.post("/identified_user")
@@ -323,16 +360,16 @@ async def predict(user_request: UserRequest) -> Dict[str, Any]:
     # Démarrer le chronomètre pour mesurer la durée de la requête
     start_time = time.time()
     # Incrémenter le compteur de requêtes pour prometheus
-    nb_of_requests_counter.labels(method='POST', endpoint='/predict').inc()
+    nb_of_requests_counter.labels(method='POST', endpoint='/predict/identified_user').inc()
     # Récupération de l'email utilisateur de la session
     userId = user_request.userId    # récupéartion de l'userId dans la base de données
     # Récupérer les ID des films recommandés en utilisant la fonction de similarité
     try:
         # Forcer la conversion en int
         user_id = int(user_request.userId)
-        recommendations = get_user_recommendations(user_id, model_svd, ratings)
+        recommendations = get_user_recommendations(user_id, model_svd, ratings, n_recommendations = 8)
         logger.info(f"Recommandations pour l'utilisateur {userId}: {recommendations}")
-        imdb_list = [imdb_dict[movie_id] for movie_id in recommandations if movie_id in imdb_dict]
+        imdb_list = [imdb_dict[movie_id] for movie_id in recommendations if movie_id in imdb_dict]
         results = api_tmdb_request(imdb_list)
 
 
@@ -342,13 +379,15 @@ async def predict(user_request: UserRequest) -> Dict[str, Any]:
         duration = time.time() - start_time
         # Enregistrement des métriques pour Prometheus
         status_code_counter.labels(status_code="200").inc()  # Compter les réponses réussies
-        duration_of_requests_histogram.labels(method='POST', endpoint='/predict', user_id=str(user_id)).observe(duration)  # Enregistrer la durée de la requête
-        response_size_histogram.labels(method='POST', endpoint='/predict').observe(response_size)  # Enregistrer la taille de la réponse
+        duration_of_requests_histogram.labels(method='POST', endpoint='/predict/identified_user', user_id=str(user_id)).observe(duration)  # Enregistrer la durée de la requête
+        response_size_histogram.labels(method='POST', endpoint='/predict/identified_user').observe(response_size)  # Enregistrer la taille de la réponse
         # Utiliser le logger pour voir les résultats
-        logger.info(f"Api response: {result_dict}")
+        logger.info(f"Api response: {results}")
         return results
 
     except ValueError as e:
+        status_code_counter.labels(status_code="400").inc()  # Compter les réponses échouées
+        error_counter.labels(error_type="ValueError").inc()  # Enregistrer l'erreur spécifique
         raise HTTPException(status_code=400, detail="L'ID utilisateur doit être un nombre entier")
 
 
@@ -365,14 +404,13 @@ async def predict(user_request: UserRequest) -> Dict[str, Any]:
     # Démarrer le chronomètre pour mesurer la durée de la requête
     start_time = time.time()
     # Incrémenter le compteur de requêtes pour prometheus
-    nb_of_requests_counter.labels(method='POST', endpoint='/predict').inc()
+    nb_of_requests_counter.labels(method='POST', endpoint='/predict/similar_movies').inc()
     # Récupération des données Streamlit
-    print({"user_request" : user_request})
     movie_title = movie_finder(user_request.movie_title)  # Trouver le titre du film correspondant
     movie_id = int(movies['movieId'][movies['title'] == movie_title].iloc[0])
     # Récupérer les ID des films recommandés en utilisant la fonction de similarité
-    recommendations = get_movie_title_recommendations(model_Knn, movie_id, X, movie_mapper, movie_inv_mapper, 10)
-    imdb_list = [imdb_dict[movie_id] for movie_id in recommandations if movie_id in imdb_dict]
+    recommendations = get_movie_title_recommendations(model_Knn, movie_id, X, movie_mapper, movie_inv_mapper, 9)
+    imdb_list = [imdb_dict[movie_id] for movie_id in recommendations if movie_id in imdb_dict]
     results = api_tmdb_request(imdb_list)
 
     # Mesurer la taille de la réponse et l'enregistrer
@@ -381,8 +419,8 @@ async def predict(user_request: UserRequest) -> Dict[str, Any]:
     duration = time.time() - start_time
     # Enregistrement des métriques pour Prometheus
     status_code_counter.labels(status_code="200").inc()  # Compter les réponses réussies
-    duration_of_requests_histogram.labels(method='POST', endpoint='/predict').observe(duration)  # Enregistrer la durée de la requête
-    response_size_histogram.labels(method='POST', endpoint='/identified_user').observe(response_size)  # Enregistrer la taille de la réponse
+    duration_of_requests_histogram.labels(method='POST', endpoint='/predict/similar_movies', user_id="N/A").observe(duration)  # Enregistrer la durée de la requête
+    response_size_histogram.labels(method='POST', endpoint='/predict/similar_movies').observe(response_size)  # Enregistrer la taille de la réponse
     logger.info(f"Api response: {results}")
     response_size_histogram.labels(method='POST', endpoint='/identified_user').observe(response_size)  # Enregistrer la taille de la réponse
     return results

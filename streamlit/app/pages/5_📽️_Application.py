@@ -34,6 +34,28 @@ username = username.capitalize()
 
 st.write(f"Bienvenue {username} !")
 
+st.write("Voici vos 3 films les mieux notés :")
+
+# Récupérer les 3 films les mieux notés pour l'utilisateur
+try:
+    payload = {"userId": user_id}
+    response = requests.post(
+        "http://fastapi:8000/predict/best_user_movies",
+        json=payload,
+        headers=headers
+    )
+
+    if response.status_code == 200:
+        result = response.json()
+        display_movies_grid(result)
+    else:
+        st.error(f"Erreur lors de la requête : {response.status_code} - {response.text}")
+except Exception as e:
+    st.error(f"Erreur de requête: {str(e)}")
+
+# Ajouter une ligne horizontale
+st.markdown("---")
+
 st.write("Voici une recommandation de films au regard de vos notations :")
 
 # Récupérer les recommandations pour l'utilisateur
@@ -47,8 +69,7 @@ try:
 
     if response.status_code == 200:
         result = response.json()
-        recommendations = [result.get(i) for i in range(10)]
-        display_movies_grid(recommendations)
+        display_movies_grid(result)
     else:
         st.error(f"Erreur lors de la requête : {response.status_code} - {response.text}")
 except ValueError as e:
@@ -57,26 +78,26 @@ except ValueError as e:
 except Exception as e:
     st.error(f"Erreur de requête: {str(e)}")
 
-# # Ajouter une ligne horizontale
-# st.markdown("---")
+# Ajouter une ligne horizontale
+st.markdown("---")
 
-# st.write('Nous pouvons aussi vous faire des recommandations en relation avec un film. Entrez le nom d\'un film que vous avez aimé et nous vous recommanderons des films similaires.')
+st.write('Nous pouvons aussi vous faire des recommandations en relation avec un film. Entrez le nom d\'un film que vous avez aimé et nous vous recommanderons des films similaires.')
 
-# # Demander à l'utilisateur de saisir le nom d'un film
+# Demander à l'utilisateur de saisir le nom d'un film
 
-# movie_name = st.text_input("Entrez le nom d'un film que vous avez aimé", "Inception")
+movie_name = st.text_input("Entrez le nom d'un film que vous avez aimé", "Inception")
 
-# # Dans la partie recherche de films similaires
-# if st.button("Rechercher"):
-#     response = requests.post(
-#         "http://fastapi:8000/predict/similar_movies",
-#         json={"userId": st.session_state.user_id, "movie_name": movie_name},
-#         headers=headers
-#     )
+# Dans la partie recherche de films similaires
+if st.button("Rechercher"):
+    payload = {"userId": user_id, "movie_title": movie_name}
+    response = requests.post(
+        "http://fastapi:8000/predict/similar_movies",
+        json=payload,
+        headers=headers
+    )
 
-#     if response.status_code == 200:
-#         result = response.json()
-#         recommendations = [result.get(i) for i in range(10)]
-#         display_movies_grid(recommendations)
-#     else:
-#         st.error(f"Erreur lors de la requête : {response.status_code} - {response.text}")
+    if response.status_code == 200:
+        result = response.json()
+        display_movies_grid(result)
+    else:
+        st.error(f"Erreur lors de la requête : {response.status_code} - {response.text}")

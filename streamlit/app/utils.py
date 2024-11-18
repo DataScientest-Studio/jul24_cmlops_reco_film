@@ -1,17 +1,21 @@
 import streamlit as st
 
 def display_movies_grid(movies_info):
-    cols = st.columns(6)
-    for idx, movie_info in enumerate(movies_info):
-        with cols[idx % 6]:
+    # Créer deux lignes principales
+    rows = [st.columns(4), st.columns(4)]
+    # Diviser les films entre les deux lignes
+    for idx, movie_info in movies_info.items():
+        idx = int(idx)
+        row_idx = idx // 4  # Déterminer la ligne (0 ou 1)
+        col_idx = idx % 4   # Déterminer la colonne (0 à 3)
+        with rows[row_idx][col_idx]:
             html_content = f"""
             <div class="movie-container">
                 <div class="movie-tile">
-                    <img src="{movie_info['cover_link']}" alt="{movie_info['original_title']}">
+                    <img src="{movie_info['poster_path']}" alt="{movie_info['title']}">
                 </div>
                 <div class="overlay">
-                    <h5 style="color: white;">{movie_info['original_title']}</h5>
-                    <p>{movie_info['year']}</p>
+                    <h5 style="color: white;">{movie_info['title']}</h5>
                     <p class="rating-badge">{round(movie_info['vote_average'], 1)} ⭐️</p>
                 </div>
             </div>
