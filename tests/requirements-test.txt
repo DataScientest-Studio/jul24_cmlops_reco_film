@@ -29,7 +29,7 @@ beautifulsoup4
 python-dotenv
 surprise
 mlflow
-
+pandas
 streamlit
 prometheus_client
 
