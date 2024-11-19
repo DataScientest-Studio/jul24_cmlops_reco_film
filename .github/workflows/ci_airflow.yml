@@ -37,6 +37,6 @@ jobs:
 
     - name: Run tests
       run: |
-        python /airflow/dags/scrapping.py
-        python /airflow/dags/predict_surprise_SVD.py
-        python /airflow/dags/predict_knn_model.py
+        python ./airflow/dags/scrapping.py
+        python ./airflow/dags/predict_surprise_SVD.py
+        python ./airflow/dags/predict_knn_model.py

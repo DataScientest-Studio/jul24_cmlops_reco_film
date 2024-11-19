@@ -1,10 +1,10 @@
 import streamlit as st
-from streamlit.testing import TestClient
+from streamlit.testing.v1 import AppTest
 from streamlit.app.utils import display_movies_grid
 from streamlit.app.pages import _4_Authentification, _5_Application
 
 def test_display_movies_grid():
-    client = TestClient(display_movies_grid)
+    client = AppTest(display_movies_grid)
     movies_info = {
         "0": {"poster_path": "path/to/poster1.jpg", "title": "Movie 1", "vote_average": 8.5},
         "1": {"poster_path": "path/to/poster2.jpg", "title": "Movie 2", "vote_average": 7.3},
@@ -15,12 +15,12 @@ def test_display_movies_grid():
     assert client.get_widget("markdown").exists()
 
 def test_authentication_page():
-    client = TestClient(_4_Authentification)
+    client = AppTest(_4_Authentification)
     client.run()
     assert client.get_widget("header").exists()
 
 def test_application_page():
-    client = TestClient(_5_Application)
+    client = AppTest(_5_Application)
     client.run()
     assert client.get_widget("markdown").exists()
 
