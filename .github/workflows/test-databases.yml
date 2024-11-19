@@ -38,6 +38,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r tests/requirements-test.txt
 
+      - name: Create database tables
+        run: |
+          psql postgresql://test_user:test_password@localhost:5432/test_db -f tests/test_db_creation.sql
+
       - name: Run database tests
         run: |
           pytest tests/test_db.py
