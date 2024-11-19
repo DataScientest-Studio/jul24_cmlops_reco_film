@@ -106,3 +106,18 @@ train_task = PythonOperator(
 
 if __name__ == "__main__":
    svd_dag.cli()
+   from airflow.utils.state import State
+   from airflow.models import DagBag
+
+   dag_bag = DagBag()
+   dag = dag_bag.get_dag(dag_id='SVD_train_and_compare_model')
+   dag.clear()
+
+   # Exécuter les tâches du DAG
+   for task in dag.tasks:
+       task.run(ignore_ti_state=True)
+
+   # Vérifier l'état des tâches
+   for task in dag.tasks:
+       ti = dag.get_task_instance(task.task_id)
+       assert ti.state == State.SUCCESS, f"Tâche {task.task_id} échouée"
