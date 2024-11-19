@@ -10,7 +10,7 @@ with open("style.css") as f:
 # Vérification plus robuste de l'authentification
 if not st.session_state.get('is_logged_in', False):
     st.warning("Veuillez vous connecter pour accéder à cette page.")
-    st.switch_page("pages/4_🔐_Authentification.py")
+    st.switch_page("pages/4_Authentification.py")
     st.stop()
 
 
