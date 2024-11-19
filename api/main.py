@@ -1,8 +1,8 @@
 from typing import Union
 from fastapi import FastAPI, status, Depends, HTTPException
 from typing import Annotated
-from auth import get_current_user, router as auth_router
-from predict import router as predict_router
+from api.auth import get_current_user, router as auth_router
+from api.predict import router as predict_router
 from prometheus_fastapi_instrumentator import Instrumentator
 import logging
 
