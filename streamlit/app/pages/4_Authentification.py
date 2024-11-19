@@ -70,7 +70,7 @@ with tabs[1]:
                     st.session_state.is_logged_in = True
                     st.success(f"Connexion réussie!")
                     st.balloons()
-                    st.switch_page("pages/5_📽️_Application.py")
+                    st.switch_page("pages/5_Application.py")
                 else:
                     st.error("Erreur d'authentification")
 
