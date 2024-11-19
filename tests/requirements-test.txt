@@ -24,5 +24,3 @@ python-dotenv
 surprise
 mlflow
 
-# Streamlit testing
-streamlit-testing
