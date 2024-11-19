@@ -1,7 +1,7 @@
 import streamlit as st
 from streamlit.testing import TestRunner
 from streamlit.app.utils import display_movies_grid
-
+from streamlit.app.pages import _4_Authentification, _5_Application
 
 def test_display_movies_grid():
     runner = TestRunner()
@@ -16,12 +16,12 @@ def test_display_movies_grid():
 
 def test_authentication_page():
     runner = TestRunner()
-    runner.run(auth_page)
+    runner.run(_4_Authentification)
     assert runner.get_widget("header").exists()
 
 def test_application_page():
     runner = TestRunner()
-    runner.run(app_page)
+    runner.run(_5_Application)
     assert runner.get_widget("markdown").exists()
 
 if __name__ == "__main__":
