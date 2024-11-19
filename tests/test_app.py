@@ -1,7 +1,7 @@
 import streamlit as st
 from streamlit.testing import TestRunner
 from streamlit.app.utils import display_movies_grid
-from streamlit.app.pages import 4_Authentification, 5_Application
+
 
 def test_display_movies_grid():
     runner = TestRunner()

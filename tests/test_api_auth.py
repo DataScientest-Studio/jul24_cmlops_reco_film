@@ -1,6 +1,8 @@
 import pytest
 from fastapi.testclient import TestClient
-from main import app  # Assurez-vous que le chemin d'importation est correct
+from api.main import app
+from api.auth import validate_username, validate_email, validate_password
+
 
 client = TestClient(app)
 
