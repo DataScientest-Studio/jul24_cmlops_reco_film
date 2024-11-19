@@ -1,5 +1,5 @@
 import pytest
-from streamlit.app.utils import display_movies_grid  # Assurez-vous que cette fonction existe dans utils.py
+from streamlit.app.utils import display_movies_grid
 
 @pytest.fixture
 def sample_movies_info():

@@ -3,8 +3,7 @@ import unittest
 from airflow.models import DagBag
 import sys
 import os
-sys.path.append(os.path.join(os.path.dirname(__file__), '../airflow/dags'))
-from scrapping import get_db_connection, scrape_imdb
+from airflow.dags.scrapping import get_db_connection, scrape_imdb
 
 class TestScrapingDAG(unittest.TestCase):
     def setUp(self):

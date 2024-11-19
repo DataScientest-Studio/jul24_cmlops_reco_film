@@ -1,20 +1,16 @@
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 from fastapi.testclient import TestClient
 from api.main import app
 from api.auth import validate_username, validate_email, validate_password
 
+
 client = TestClient(app)
 
-@pytest.fixture(autouse=True)
+@pytest.fixture
 def mock_db():
-    mock_conn = MagicMock()
-    mock_cur = MagicMock()
-    mock_conn.cursor.return_value = mock_cur
-    mock_cur.fetchone.return_value = None
-
-    with patch('psycopg2.connect', return_value=mock_conn) as mock:
-        yield mock_conn, mock_cur
+    with patch('psycopg2.connect') as mock:
+        yield mock
 
 @pytest.fixture
 def create_user():

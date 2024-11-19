@@ -5,8 +5,8 @@ import sys
 import os
 import pandas as pd
 import numpy as np
-sys.path.append(os.path.join(os.path.dirname(__file__), '../airflow/dags'))
-from predict_knn_model import read_ratings, create_X
+
+from airflow.dags.predict_knn_model import read_ratings, create_X
 
 class TestKNNModelDAG(unittest.TestCase):
     def setUp(self):
