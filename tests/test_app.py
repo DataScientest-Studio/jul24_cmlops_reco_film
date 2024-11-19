@@ -1,10 +1,10 @@
 import streamlit as st
-from streamlit.testing import TestRunner
+from streamlit.testing import StreamlitTestRunner
 from streamlit.app.utils import display_movies_grid
 from streamlit.app.pages import _4_Authentification, _5_Application
 
 def test_display_movies_grid():
-    runner = TestRunner()
+    runner = StreamlitTestRunner()
     movies_info = {
         "0": {"poster_path": "path/to/poster1.jpg", "title": "Movie 1", "vote_average": 8.5},
         "1": {"poster_path": "path/to/poster2.jpg", "title": "Movie 2", "vote_average": 7.3},
@@ -15,12 +15,12 @@ def test_display_movies_grid():
     assert runner.get_widget("markdown").exists()
 
 def test_authentication_page():
-    runner = TestRunner()
+    runner = StreamlitTestRunner()
     runner.run(_4_Authentification)
     assert runner.get_widget("header").exists()
 
 def test_application_page():
-    runner = TestRunner()
+    runner = StreamlitTestRunner()
     runner.run(_5_Application)
     assert runner.get_widget("markdown").exists()
 

@@ -1,4 +1,3 @@
-
 name: CI_Airflow
 
 on: [push, pull_request]
@@ -38,6 +37,6 @@ jobs:
 
     - name: Run tests
       run: |
-        python /home/antoine/jul24_cmlops_reco_film/airflow/dags/scrapping.py
-        python /home/antoine/jul24_cmlops_reco_film/airflow/dags/predict_surprise_SVD.py
-        python /home/antoine/jul24_cmlops_reco_film/airflow/dags/predict_knn_model.py
+        python ../airflow/dags/scrapping.py
+        python ../airflow/dags/predict_surprise_SVD.py
+        python ../airflow/dags/predict_knn_model.py

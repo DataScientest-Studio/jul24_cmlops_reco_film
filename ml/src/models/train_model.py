@@ -9,6 +9,7 @@ from datetime import datetime
 from scipy.sparse import csr_matrix
 from sklearn.neighbors import NearestNeighbors
 import numpy as np
+np._import_array()
 
 
 def read_ratings(ratings_csv: str) -> pd.DataFrame:
