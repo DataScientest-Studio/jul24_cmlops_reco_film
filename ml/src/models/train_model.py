@@ -15,10 +15,10 @@ def read_ratings(ratings_csv: str) -> pd.DataFrame:
     """Lit le fichier CSV contenant les évaluations des films et retourne un DataFrame Pandas.
 
     Args:
-        ratings_csv (str): Le nom du fichier CSV contenant les évaluations.
+        ratings_csv (str): Chemin vers le fichier CSV des évaluations.
 
     Returns:
-        pd.DataFrame: Un DataFrame contenant les données des évaluations.
+        pd.DataFrame: DataFrame contenant les données des évaluations.
 
     Raises:
         FileNotFoundError: Si le fichier CSV n'est pas trouvé.
@@ -59,7 +59,11 @@ def read_ratings(ratings_csv: str) -> pd.DataFrame:
 
 
 def train_SVD_model(df) -> tuple:
-    """Entraîne le modèle de recommandation sur les données fournies et retourne le modèle et son RMSE."""
+    """Entraîne un modèle SVD de recommandation et sauvegarde le modèle.
+
+    Args:
+        df (pd.DataFrame): DataFrame contenant les colonnes userId, movieId et bayesian_mean.
+    """
 
     start_time = datetime.now()  # Démarrer la mesure du temps
 
@@ -101,21 +105,13 @@ def train_SVD_model(df) -> tuple:
 
 
 def create_X(df):
-    """
-    Génère une matrice creuse avec quatre dictionnaires de mappage
-    - user_mapper: mappe l'ID utilisateur à l'index utilisateur
-    - movie_mapper: mappe l'ID du film à l'index du film
-    - user_inv_mapper: mappe l'index utilisateur à l'ID utilisateur
-    - movie_inv_mapper: mappe l'index du film à l'ID du film
+    """Crée une matrice creuse et les dictionnaires de correspondance.
+
     Args:
-        df: pandas dataframe contenant 3 colonnes (userId, movieId, rating)
+        df (pd.DataFrame): DataFrame avec colonnes userId, movieId, rating.
 
     Returns:
-        X: sparse matrix
-        user_mapper: dict that maps user id's to user indices
-        user_inv_mapper: dict that maps user indices to user id's
-        movie_mapper: dict that maps movie id's to movie indices
-        movie_inv_mapper: dict that maps movie indices to movie id's
+        tuple: (matrice_creuse, user_mapper, movie_mapper, user_inv_mapper, movie_inv_mapper)
     """
     M = df['userId'].nunique()
     N = df['movieId'].nunique()
@@ -135,15 +131,12 @@ def create_X(df):
 
 
 def train_matrix_model(df, k = 10, metric='cosine'):
-    """
-    Entrainement et sauvegarde du modèle KNN pour la matrice creuse X"
+    """Entraîne et sauvegarde un modèle KNN basé sur une matrice creuse.
 
     Args:
-        X: matrice d'utilité utilisateur-article (matrice creuse)
-        k: nombre de films similaires à récupérer
-        metric: métrique de distance pour les calculs kNN
-
-    Output: Sauvegarde du modèle
+        df (pd.DataFrame): DataFrame avec les données d'évaluation.
+        k (int): Nombre de voisins à considérer.
+        metric (str): Métrique de distance pour KNN.
     """
     # Démarrer la mesure du temps
     start_time = datetime.now()
