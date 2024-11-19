@@ -32,4 +32,6 @@ mlflow
 pandas
 streamlit
 prometheus_client
+scipy
+lxml
 

@@ -1,8 +1,7 @@
-
+import pandas as pd  # Déplacer pandas en premier
 import os
-import pandas as pd
-import numpy as np
 import pytest
+import numpy as np
 from ml.src.models.train_model import read_ratings, train_SVD_model, create_X, train_matrix_model
 
 @pytest.fixture

@@ -9,6 +9,12 @@ RUN apt-get update && apt-get install -y \
     gosu \
     && rm -rf /var/lib/apt/lists/*
 
+# Installer les dépendances PostgreSQL avant les requirements Python
+RUN apt-get update && apt-get install -y \
+    postgresql-server-dev-all \
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
+
 USER airflow
 
 COPY requirements.txt .
