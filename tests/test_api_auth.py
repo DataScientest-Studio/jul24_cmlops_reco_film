@@ -38,13 +38,8 @@ def mock_data():
 @pytest.fixture(autouse=True)
 def mock_data_loading(mock_data):
     ratings, movies, links = mock_data
-    with patch('api.predict.read_ratings', return_value=ratings), \
-         patch('api.predict.read_movies', return_value=movies), \
-         patch('api.predict.read_links', return_value=links), \
-         patch('api.predict.load_model', return_value=MagicMock()), \
-         patch('api.predict.create_X', return_value=(MagicMock(), {}, {}, {}, {})):
+    with patch('api.auth.load_data', return_value=mock_data):
         yield
-
 
 
 @pytest.mark.usefixtures("mock_db")
@@ -78,7 +73,15 @@ def test_validate_password():
     error_message = validate_password(valid_password)
     assert error_message is None
 
-    # Test pour le mot de passe invalide (trop court)
-    invalid_password = "Short1!"
-    error_message = validate_password(invalid_password)
-    assert error_message == "Le mot de passe doit contenir au moins 12 caractères."
+    # Test pour différents cas de mots de passe invalides
+    test_cases = [
+        ("Short1!", "Le mot de passe doit contenir au moins 12 caractères."),
+        ("passwordwithoutdigits", "Le mot de passe doit contenir au moins un chiffre."),
+        ("password123456789", "Le mot de passe doit contenir au moins une lettre majuscule."),
+        ("PASSWORD123456789", "Le mot de passe doit contenir au moins une lettre minuscule."),
+        ("Password123456789", "Le mot de passe doit contenir au moins un caractère spécial.")
+    ]
+
+    for password, expected_error in test_cases:
+        error_message = validate_password(password)
+        assert error_message == expected_error, f"Test failed for password: {password}"
