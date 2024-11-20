@@ -1,4 +1,3 @@
-
 import unittest
 from airflow.models import DagBag
 import sys
@@ -6,7 +5,8 @@ import os
 import pandas as pd
 import numpy as np
 
-from airflow.dags.predict_knn_model import read_ratings, create_X
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../dags')))
+from predict_knn_model import read_ratings, create_X
 
 class TestKNNModelDAG(unittest.TestCase):
     def setUp(self):

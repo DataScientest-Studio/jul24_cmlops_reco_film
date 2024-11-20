@@ -1,9 +1,9 @@
-
 import unittest
 from airflow.models import DagBag
 import sys
 import os
-from airflow.dags.predict_surprise_SVD import read_ratings
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../airflow/dags')))
+from predict_surprise_SVD import read_ratings
 
 class TestSVDModelDAG(unittest.TestCase):
     def setUp(self):
