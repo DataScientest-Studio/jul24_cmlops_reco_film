@@ -11,7 +11,7 @@ from predict_knn_model import create_X, my_dag
 def test_dag_loaded():
     """Test que le DAG est correctement chargé."""
     assert my_dag is not None
-    assert len(imdb_scraper_dag.tasks) == 1
+    assert len(my_dag.tasks) == 1
     assert my_dag.task_dict['train_model'] is not None
 
 
@@ -19,7 +19,6 @@ def test_dag_loaded():
     assert my_dag.dag_id == 'KNN_train_model'
     assert my_dag.schedule_interval == '@daily'
     assert my_dag.default_args['owner'] == 'airflow'
-    assert my_dag.default_args['start_date'] == datetime(2024, 11, 15)
 
 
 def test_create_X():

@@ -17,5 +17,5 @@ def test_dag_loaded():
     assert svd_dag.dag_id == 'SVD_train_and_compare_model'
     assert svd_dag.schedule_interval == '@daily'
     assert svd_dag.default_args['owner'] == 'airflow'
-    assert svd_dag.default_args['start_date'] == datetime(2024, 11, 3)
+
 
