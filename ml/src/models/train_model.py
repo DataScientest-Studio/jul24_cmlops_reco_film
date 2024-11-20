@@ -9,7 +9,7 @@ from datetime import datetime
 from scipy.sparse import csr_matrix
 from sklearn.neighbors import NearestNeighbors
 import numpy as np
-np._import_array()
+
 
 
 def read_ratings(ratings_csv: str) -> pd.DataFrame:
@@ -63,14 +63,14 @@ def train_SVD_model(df) -> tuple:
     """Entraîne un modèle SVD de recommandation et sauvegarde le modèle.
 
     Args:
-        df (pd.DataFrame): DataFrame contenant les colonnes userId, movieId et bayesian_mean.
+        df (pd.DataFrame): DataFrame contenant les colonnes userId, movieId et rating.
     """
 
     start_time = datetime.now()  # Démarrer la mesure du temps
 
     # Préparer les données pour Surprise
     reader = Reader(rating_scale=(0.5, 5))
-    data = Dataset.load_from_df(df[['userId', 'movieId', 'bayesian_mean']], reader=reader)
+    data = Dataset.load_from_df(df[['userId', 'movieId', 'rating']], reader=reader)
 
     # Diviser les données en ensembles d'entraînement et de test
     trainset, testset = train_test_split(data, test_size=0.25)
