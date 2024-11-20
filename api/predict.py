@@ -192,15 +192,13 @@ def api_tmdb_request(movie_ids):
         if response.status_code == 200:
             data = response.json()
             if data["movie_results"]:
-                # On suppose que nous voulons le premier résultat
                 movie_info = data["movie_results"][0]
                 results[str(index)] = {
                     "title": movie_info["title"],
                     "vote_average": movie_info['vote_average'],
                     "poster_path": f"http://image.tmdb.org/t/p/w185{movie_info['poster_path']}"
                 }
-            else:
-                results[str(index)] = {"error": "No movie results found"}
+
         else:
             results[str(index)] = {"error": f"Request failed with status code {response.status_code}"}
 
