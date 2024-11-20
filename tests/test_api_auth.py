@@ -1,7 +1,6 @@
 import pytest
 from unittest.mock import patch, MagicMock
 from fastapi.testclient import TestClient
-from api.main import app
 from api.auth import validate_username, validate_email, validate_password
 import pandas as pd
 import numpy as np
