@@ -7,7 +7,7 @@ from scipy.sparse import csr_matrix
 import numpy as np
 from rapidfuzz import process
 from fastapi import APIRouter, HTTPException
-from api.database import get_db_connection
+from database import get_db_connection
 from typing import Dict, Any, Optional
 from prometheus_client import Counter, Histogram, CollectorRegistry
 import time

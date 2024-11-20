@@ -15,6 +15,8 @@ services:
       interval: 5s
       retries: 5
     restart: always
+    ports:
+      - 5429:5432
     networks:
       - backend
   # This container runs the artifact storage as an S3 server.

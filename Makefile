@@ -51,7 +51,7 @@ start: network
 	cd airflow && docker compose up -d
 	@echo "##########################"
 	@echo "Pg Admin: http://127.0.0.1:5431"
-	@echo "Airflow: http://localhost:8081"
+	@echo "Airflow: http://127.0.0.1:8081"
 	@echo "Streamlit: http://localhost:8501"
 	@echo "FastAPI: http://localhost:8001/docs"
 	@echo "Grafana: http://localhost:3000"

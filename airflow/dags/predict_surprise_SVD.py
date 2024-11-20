@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 from airflow import DAG
 from airflow.operators.python_operator import PythonOperator
@@ -9,6 +10,9 @@ from surprise import accuracy
 import mlflow
 import pickle
 from datetime import datetime
+
+# Initialisation de NumPy
+np.import_array()
 
 # Configuration de MLflow
 mlflow.set_tracking_uri("http://mlflow_webserver:5000")

@@ -36,7 +36,6 @@ def get_db_connection():
         yield conn
     except psycopg2.Error as e:
         print(f"Erreur lors de la connexion à la base de données: {e}")
-        conn.rollback()
         raise
     finally:
         if conn is not None:
