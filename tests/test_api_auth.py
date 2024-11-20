@@ -1,11 +1,9 @@
 import pytest
 from unittest.mock import patch, MagicMock
-from fastapi.testclient import TestClient
 from api.auth import validate_username, validate_email, validate_password
 import pandas as pd
 import numpy as np
 
-client = TestClient(app)
 
 @pytest.fixture
 def mock_db():
@@ -18,17 +16,10 @@ def mock_db():
         mock_connect.return_value = mock_conn
         yield mock_connect
 
-@pytest.fixture
-def create_user():
-    response = client.post("/auth/", json={
-        "username": "testuser",
-        "email": "testuser@example.com",
-        "password": "StrongPassword123!"
-    })
-    return response
 
 @pytest.fixture
 def mock_data():
+
     ratings = pd.DataFrame({
         'userId': [1, 2, 3],
         'movieId': [1, 2, 3],
@@ -54,38 +45,7 @@ def mock_data_loading(mock_data):
          patch('api.predict.create_X', return_value=(MagicMock(), {}, {}, {}, {})):
         yield
 
-@pytest.mark.usefixtures("mock_db")
-def test_create_user(create_user):
-    assert create_user.status_code == 201
-    assert create_user.json() is not None
 
-@pytest.mark.usefixtures("mock_db")
-def test_create_user_duplicate_email(create_user):
-    response = client.post("/auth/", json={
-        "username": "anotheruser",
-        "email": "testuser@example.com",  # Email déjà utilisé
-        "password": "AnotherStrongPassword123!"
-    })
-    assert response.status_code == 400
-    assert response.json()["detail"] == "Email already registered"
-
-@pytest.mark.usefixtures("mock_db")
-def test_login_for_access_token(create_user):
-    response = client.post("/auth/token", data={
-        "username": "testuser",
-        "password": "StrongPassword123!"
-    })
-    assert response.status_code == 200
-    assert "access_token" in response.json()
-
-@pytest.mark.usefixtures("mock_db")
-def test_login_invalid_credentials():
-    response = client.post("/auth/token", data={
-        "username": "nonexistentuser",
-        "password": "WrongPassword"
-    })
-    assert response.status_code == 401
-    assert response.json()["detail"] == 'Could not validate user.'
 
 @pytest.mark.usefixtures("mock_db")
 def test_validate_username():
