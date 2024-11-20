@@ -170,20 +170,3 @@ update_links_task = PythonOperator(
 
 # Définir l'ordre d'exécution des tâches dans le DAG
 scrape_task >> update_movies_task >> update_links_task
-
-if __name__ == "__main__":
-    from airflow.utils.state import State
-    from airflow.models import DagBag
-
-    dag_bag = DagBag()
-    dag = dag_bag.get_dag(dag_id='imdb_scraper_dag')
-    dag.clear()
-
-    # Exécuter les tâches du DAG
-    for task in dag.tasks:
-        task.run(ignore_ti_state=True)
-
-    # Vérifier l'état des tâches
-    for task in dag.tasks:
-        ti = dag.get_task_instance(task.task_id)
-        assert ti.state == State.SUCCESS, f"Tâche {task.task_id} échouée"

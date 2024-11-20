@@ -41,15 +41,11 @@ router = APIRouter(
 # Chargement des datasets
 def read_ratings(ratings_csv: str, data_dir: str = "/app/raw") -> pd.DataFrame:
     """Reads the CSV file containing movie ratings."""
-    try:
-        data = pd.read_csv(os.path.join(data_dir, ratings_csv))
-        print("Dataset ratings loaded")
-        return data
-    except FileNotFoundError:
-        if 'pytest' in sys.modules:
-            # Retourner un DataFrame vide ou minimal pour les tests
-            return pd.DataFrame(columns=['userId', 'movieId', 'rating'])
-        raise
+    data = pd.read_csv(os.path.join(data_dir, ratings_csv))
+    print("Dataset ratings loaded")
+    return data
+
+
 
 def read_movies(movies_csv: str, data_dir: str = "/app/raw") -> pd.DataFrame:
     """Reads the CSV file containing movie information."""
