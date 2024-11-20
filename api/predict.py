@@ -37,13 +37,6 @@ router = APIRouter(
 
 # ENSEMBLE DES FONCTIONS UTILISEES
 
-# Connection à la base de données
-conn = psycopg2.connect(
-            database="reco_movies",
-            host="reco_movies_db",
-            user="antoine",
-            password="datascientest",
-            port=5432)
 
 # Chargement des datasets
 def read_ratings(ratings_csv: str, data_dir: str = "/app/raw") -> pd.DataFrame:
