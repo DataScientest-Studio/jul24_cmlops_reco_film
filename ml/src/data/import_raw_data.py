@@ -31,13 +31,9 @@ def import_raw_data(raw_data_relative_path, filenames, bucket_folder_url):
 def main(
     raw_data_relative_path="./ml/data/raw",
     filenames=[
-        "genome-scores.csv",
-        "genome-tags.csv",
         "links.csv",
         "movies.csv",
         "ratings.csv",
-        "README.txt",
-        "tags.csv",
     ],
     bucket_folder_url="https://mlops-project-db.s3.eu-west-1.amazonaws.com/movie_recommandation/",
 ):

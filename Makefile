@@ -20,12 +20,15 @@ help:
 # TODO: gérer le fait que l'on ait pas les posterUrl a ce stade pour le build des features
 setup1:
 	@echo "###### SETUP ENV #########"
-	python3 -m venv .venv
-	source .venv/bin/activate
+	# python3 -m venv .venv
+	# source .venv/bin/activate
 	pip install -r requirements-dev.txt
 	@echo "###### DATA & MODEL ######"
+	@echo 'Chargement des données'
 	python ml/src/data/import_raw_data.py
+	@echo 'Création des features'
 	python ml/src/features/build_features.py
+	@echo 'Entrainement des modèles SVD & KNN'
 	python ml/src/models/train_model.py
 	@echo "###### ENV VARIABLES #####"
 	cd postgres && cp .env.example .env

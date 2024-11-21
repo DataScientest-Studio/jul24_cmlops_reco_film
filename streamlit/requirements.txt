@@ -1,6 +1,6 @@
 streamlit
 fastapi
-numpy
+numpy<2.0
 pillow
 python-multipart
 uvicorn

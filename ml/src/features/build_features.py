@@ -1,7 +1,8 @@
 import pandas as pd
 import os
 from passlib.context import CryptContext
-from tqdm import tqdm
+
+bcrypt_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
 
 # localisation du fichier
 base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -150,6 +151,37 @@ def preprocessing_links(links_file) -> pd.DataFrame:
 
    return df
 
+def create_users():
+    print("Création des utilisateurs _ fichier users.csv")
+    username = []
+    email = []
+    password = []
+
+    for i in range(1, 501):
+        username.append('user'+str(i))
+        email.append('user'+str(i)+'@example.com')
+        password.append('password'+str(i))
+
+    hached_password = [bcrypt_context.hash(i) for i in password]
+
+    # Créer un DataFrame
+    df = pd.DataFrame({'username': username, 'email': email, 'hached_password': hached_password})
+
+    # Définir le chemin pour enregistrer le fichier traité
+    output_dir = os.path.join(base_dir, '..', '..', 'data',"processed")
+    output_file = os.path.join(output_dir, "users.csv")
+
+    # Créer le dossier 'processed' s'il n'existe pas
+    os.makedirs(output_dir, exist_ok=True)
+
+    # Enregistrer le DataFrame en tant que fichier CSV
+    try:
+        df.to_csv(output_file, index=False)  # Enregistrer sans l'index
+        print(f"Fichier enregistré avec succès sous {output_file}.")
+
+    except Exception as e:
+        print(f"Une erreur s'est produite lors de l'enregistrement du fichier : {e}")
+
 if __name__ == "__main__":
     # Chargement des datasets
     # Obtenir le répertoire du script actuel
@@ -161,3 +193,4 @@ if __name__ == "__main__":
     preprocessing_ratings(ratings_file)
     preprocessing_movies(movies_file)
     preprocessing_links(links_file)
+    create_users()

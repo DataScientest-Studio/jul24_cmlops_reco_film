@@ -1,15 +1,12 @@
-click==8.1.7
-numpy<2
-pandas==2.2.2
+numpy<2.0
+pandas
 python-dotenv==1.0.1
-requests==2.31.0
-scikit_learn==1.4.2
+requests
+scikit_learn
 awscli>=1.29.0
-# sqlalchemy==2.0.36
-# psycopg2-binary==2.9.10
 tqdm==4.66.5
 scikit-surprise
 bcrypt==3.2.0
-psycopg2
-fastapi[standard]>=0.113.0,<0.114.0
+psycopg2-binary>=2.9.9
+fastapi
 passlib

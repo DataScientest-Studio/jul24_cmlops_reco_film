@@ -2,7 +2,7 @@
 pytest
 
 # Database testing
-psycopg2-binary
+psycopg2>=2.9.9
 
 # API testing
 fastapi
@@ -11,10 +11,10 @@ python-multipart
 
 # Data processing and ML dependencies
 pandas
-numpy<2
-scikit-learn
-tqdm
-bcrypt
+numpy<2.0
+scikit-learn==1.5.1
+tqdm==4.66.5
+bcrypt==3.2.0
 
 # Test client for FastAPI
 requests
@@ -25,11 +25,10 @@ pydantic>=2.7.0,<3.0.0
 
 # Test client for Airflow
 apache-airflow
-beautifulsoup4
-python-dotenv
+beautifulsoup4==4.12.3
+python-dotenv==1.0.1
 surprise
 mlflow
-pandas
 streamlit
 prometheus_client
 scipy
