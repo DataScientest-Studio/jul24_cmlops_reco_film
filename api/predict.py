@@ -245,6 +245,18 @@ error_counter = Counter(
     documentation='Count of API errors by type',
     labelnames=['error_type'],
     registry=collector)
+# Nombre de films recommandés
+recommendations_counter = Counter(
+    name='number_of_recommendations',
+    documentation='Number of movie recommendations made',
+    labelnames=['endpoint'],
+    registry=collector)
+# Temps de traitement des requêtes TMDB
+tmdb_request_duration_histogram = Histogram(
+    name='tmdb_request_duration_seconds',
+    documentation='Duration of TMDB API requests',
+    labelnames=['endpoint'],
+    registry=collector)
 
 # ---------------------------------------------------------------
 
@@ -318,7 +330,11 @@ async def predict(user_request: UserRequest) -> Dict[str, Any]:
         df_user = df_user.sort_values(by='rating', ascending=False)
         best_movies = df_user.head(3)
         imdb_list = [imdb_dict[movie_id] for movie_id in best_movies['movieId'] if movie_id in imdb_dict]
+        start_tmdb_time = time.time()
         results = api_tmdb_request(imdb_list)
+        tmdb_duration = time.time() - start_tmdb_time
+        tmdb_request_duration_histogram.labels(endpoint='/predict/best_user_movies').observe(tmdb_duration)
+        recommendations_counter.labels(endpoint='/predict/best_user_movies').inc(len(results))
         # Mesurer la taille de la réponse et l'enregistrer
         response_size = len(json.dumps(results))
         # Calculer la durée et enregistrer dans l'histogramme
@@ -329,10 +345,13 @@ async def predict(user_request: UserRequest) -> Dict[str, Any]:
         response_size_histogram.labels(method='POST', endpoint='/predict/best_user_movies').observe(response_size)  # Enregistrer la taille de la réponse
         # Utiliser le logger pour voir les résultats
         logger.info(f"Api response: {results}")
+        logger.info(f"Durée de la requête: {duration} secondes")
+        logger.info(f"Taille de la réponse: {response_size} octets")
         return results
     except ValueError as e:
         status_code_counter.labels(status_code="400").inc()  # Compter les réponses échouées
         error_counter.labels(error_type="ValueError").inc()  # Enregistrer l'erreur spécifique
+        logger.error(f"Erreur de conversion de l'ID utilisateur: {e}")
         raise HTTPException(status_code=400, detail="L'ID utilisateur doit être un nombre entier")
 
 
@@ -363,9 +382,11 @@ async def predict(user_request: UserRequest) -> Dict[str, Any]:
         recommendations = get_user_recommendations(user_id, model_svd, ratings, n_recommendations = 8)
         logger.info(f"Recommandations pour l'utilisateur {userId}: {recommendations}")
         imdb_list = [imdb_dict[movie_id] for movie_id in recommendations if movie_id in imdb_dict]
+        start_tmdb_time = time.time()
         results = api_tmdb_request(imdb_list)
-
-
+        tmdb_duration = time.time() - start_tmdb_time
+        tmdb_request_duration_histogram.labels(endpoint='/predict/identified_user').observe(tmdb_duration)
+        recommendations_counter.labels(endpoint='/predict/identified_user').inc(len(results))
         # Mesurer la taille de la réponse et l'enregistrer
         response_size = len(json.dumps(results))
         # Calculer la durée et enregistrer dans l'histogramme
@@ -376,11 +397,14 @@ async def predict(user_request: UserRequest) -> Dict[str, Any]:
         response_size_histogram.labels(method='POST', endpoint='/predict/identified_user').observe(response_size)  # Enregistrer la taille de la réponse
         # Utiliser le logger pour voir les résultats
         logger.info(f"Api response: {results}")
+        logger.info(f"Durée de la requête: {duration} secondes")
+        logger.info(f"Taille de la réponse: {response_size} octets")
         return results
 
     except ValueError as e:
         status_code_counter.labels(status_code="400").inc()  # Compter les réponses échouées
         error_counter.labels(error_type="ValueError").inc()  # Enregistrer l'erreur spécifique
+        logger.error(f"Erreur de conversion de l'ID utilisateur: {e}")
         raise HTTPException(status_code=400, detail="L'ID utilisateur doit être un nombre entier")
 
 
@@ -404,17 +428,26 @@ async def predict(user_request: UserRequest) -> Dict[str, Any]:
     # Récupérer les ID des films recommandés en utilisant la fonction de similarité
     recommendations = get_movie_title_recommendations(model_Knn, movie_id, X, movie_mapper, movie_inv_mapper, 9)
     imdb_list = [imdb_dict[movie_id] for movie_id in recommendations if movie_id in imdb_dict]
+    start_tmdb_time = time.time()
     results = api_tmdb_request(imdb_list)
-
+    tmdb_duration = time.time() - start_tmdb_time
+    tmdb_request_duration_histogram.labels(endpoint='/predict/similar_movies').observe(tmdb_duration)
+    recommendations_counter.labels(endpoint='/predict/similar_movies').inc(len(results))
     # Mesurer la taille de la réponse et l'enregistrer
     response_size = len(json.dumps(results))
     # Calculer la durée et enregistrer dans l'histogramme
     duration = time.time() - start_time
-    # Enregistrement des métriques pour Prometheus
+    # Enregistrement des m��triques pour Prometheus
     status_code_counter.labels(status_code="200").inc()  # Compter les réponses réussies
     duration_of_requests_histogram.labels(method='POST', endpoint='/predict/similar_movies', user_id="N/A").observe(duration)  # Enregistrer la durée de la requête
     response_size_histogram.labels(method='POST', endpoint='/predict/similar_movies').observe(response_size)  # Enregistrer la taille de la réponse
     logger.info(f"Api response: {results}")
-    response_size_histogram.labels(method='POST', endpoint='/identified_user').observe(response_size)  # Enregistrer la taille de la réponse
+    logger.info(f"Durée de la requête: {duration} secondes")
+    logger.info(f"Taille de la réponse: {response_size} octets")
     return results
+    except Exception as e:
+        status_code_counter.labels(status_code="500").inc()  # Compter les réponses échouées
+        error_counter.labels(error_type="Exception").inc()  # Enregistrer l'erreur spécifique
+        logger.error(f"Erreur lors du traitement de la requête: {e}")
+        raise HTTPException(status_code=500, detail="Erreur interne du serveur")
 
