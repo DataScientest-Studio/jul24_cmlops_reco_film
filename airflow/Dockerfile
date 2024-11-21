@@ -18,6 +18,7 @@ RUN apt-get update && apt-get install -y \
 USER airflow
 
 COPY requirements.txt .
+COPY .env .
 
 # Mettre à jour pip et installer les dépendances Python
 RUN pip install --upgrade pip && \

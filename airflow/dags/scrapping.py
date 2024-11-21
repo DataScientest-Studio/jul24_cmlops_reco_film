@@ -8,6 +8,15 @@ import re
 import os
 from dotenv import load_dotenv
 import psycopg2
+from contextlib import contextmanager  # Ajout du module contextlib
+import logging
+from airflow.utils.dates import days_ago
+from airflow.hooks.base_hook import BaseHook
+import time
+
+# Configurer le logger
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Charger les variables d'environnement depuis le fichier .env
 load_dotenv()
@@ -18,6 +27,7 @@ POSTGRES_DB= os.getenv('POSTGRES_DB')
 POSTGRES_HOST= os.getenv('POSTGRES_HOST')
 POSTGRES_PORT= os.getenv('POSTGRES_PORT')
 
+@contextmanager  # Ajout du décorateur contextmanager
 def get_db_connection():
     """
     Gestionnaire de contexte pour la connexion à la base de données.
@@ -41,7 +51,6 @@ def get_db_connection():
         yield conn
     except psycopg2.Error as e:
         print(f"Erreur lors de la connexion à la base de données: {e}")
-        conn.rollback()
         raise
     finally:
         if conn is not None:
@@ -50,6 +59,7 @@ def get_db_connection():
 
 def scrape_imdb():
     """Scrape les données des films depuis IMDb et les insère dans Supabase."""
+    start_time = time.time()
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
     }
@@ -65,6 +75,7 @@ def scrape_imdb():
     # Nettoyer les titres et extraire les IDs IMDb
     cleaned_titles = [re.sub(r'^\d+\.\s*', '', title) for title in titles]
     cleaned_links = [link.split('/')[2].split('?')[0].replace('tt', '') for link in links]
+
 
     genres_list, year_list = [], []
 
@@ -87,48 +98,60 @@ def scrape_imdb():
         })
         year_list.append(year_elem.text if year_elem else None)
 
-    # Connexion à postgres pour insérer les données
-    with get_db_connection() as conn:
-        with conn.cursor() as cur:
-            # Créer la table movies si elle n'existe pas
-            cur.execute("""
-                CREATE TABLE IF NOT EXISTS movies (
-                    movieId SERIAL PRIMARY KEY,
-                    title VARCHAR(255) NOT NULL,
-                    genres TEXT,
-                    year INT
-                )
-            """)
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                try:
+                    # Récupération du dernier movieId
+                    cur.execute("SELECT COALESCE(MAX(movieId), 0) FROM movies")
+                    last_movie_id = cur.fetchone()[0]
 
-            # Créer la table links si elle n'existe pas
-            cur.execute("""
-                CREATE TABLE IF NOT EXISTS links (
-                        id SERIAL PRIMARY KEY,
-                        movieId INT REFERENCES movies(movieId),
-                        imdbId INT,
-                        tmdbId INT)
-                )
-            """)
+                    # Liste pour stocker les insertions à effectuer
+                    insert_movies = []
+                    insert_links = []
 
-            # Insérer les données des films dans la table movies
-            for title, genres, year in zip(cleaned_titles, genres_list, year_list):
-                cur.execute("INSERT INTO movies (title, genres, year) VALUES (%s, %s, %s)", (title, genres, year))
-            # Insérer les données des films dans la table links
-            for imdb_id in cleaned_links:
-                cur.execute("INSERT INTO links (imdbId) VALUES (%s)", (imdb_id,))
-            conn.commit()
+                    for title, genres, year, link in zip(cleaned_titles, genres_list, year_list, cleaned_links):
+                        cur.execute("SELECT 1 FROM movies WHERE title = %s AND year = %s", (title, year))
+                        if cur.fetchone() is None:
+                            last_movie_id += 1
+                            genres_str = ','.join(genres)  # Convertir la liste de genres en chaîne de caractères
+                            insert_movies.append((title, genres_str, year))
+                            insert_links.append((last_movie_id, link))
+                            logger.info(f"Titres insérés: {insert_movies}")
+                            logger.info(f"Liens insérés: {insert_links}")
+                        else:
+                            print(f"Le film {title} existe déjà dans la base de données.")
+                    # Insertion des films
+                    if insert_movies:
+                        cur.executemany("""
+                            INSERT INTO movies (title, genres, year)
+                            VALUES (%s, %s, %s)
+                        """, insert_movies)
 
-            print("Données insérées avec succès dans la base de données.")
+                    # Insertion des liens
+                    if insert_links:
+                        cur.executemany("""
+                            INSERT INTO links (movieId, imdbId)
+                            VALUES (%s, %s)
+                        """, insert_links)
 
-def export_table_to_csv(table_name, csv_file_path):
-    """Exporte une table de postgres vers un fichier CSV."""
-    with get_db_connection() as conn:
-        with conn.cursor() as cur:
-            cur.execute(f"SELECT * FROM {table_name}")
-            rows = cur.fetchall()
-            df = pd.DataFrame(rows)
-            df.to_csv(csv_file_path, index=False)
-            print(f"Table {table_name} exportée vers {csv_file_path}")
+                    conn.commit()
+                    logger.info("Données insérées avec succès dans les tables movies & links.")
+                    # Envoyer la métrique du nombre de films insérés
+                    statsd = BaseHook.get_connection('statsd_default')
+                    statsd.gauge('imdb_scraper.movies_inserted', len(insert_movies))
+
+                except Exception as e:
+                    conn.rollback()
+                    logger.error(f"Une erreur est survenue : {e}")
+                    raise
+    finally:
+        end_time = time.time()
+        duration = end_time - start_time
+        # Envoyer la métrique de durée d'exécution
+        statsd.gauge('imdb_scraper.duration', duration)
+        # Envoyer la métrique de succès/échec
+        statsd.increment('imdb_scraper.success' if not e else 'imdb_scraper.failure')
 
 # Arguments par défaut pour le DAG
 default_args = {
@@ -152,21 +175,5 @@ scrape_task = PythonOperator(
     dag=dag,
 )
 
-# Tâche pour exporter la table movies vers CSV
-update_movies_task = PythonOperator(
-    task_id='update_movies_task',
-    python_callable=export_table_to_csv,
-    dag=dag,
-    op_kwargs={"table_name": "movies", "csv_file_path": "/opt/airflow/data/raw/processed_movies.csv"}
-)
-
-# Tâche pour exporter la table links vers CSV
-update_links_task = PythonOperator(
-    task_id='update_links_task',
-    python_callable=export_table_to_csv,
-    dag=dag,
-    op_kwargs={"table_name": "links", "csv_file_path": "/opt/airflow/data/raw/processed_links.csv"}
-)
-
 # Définir l'ordre d'exécution des tâches dans le DAG
-scrape_task >> update_movies_task >> update_links_task
+scrape_task
