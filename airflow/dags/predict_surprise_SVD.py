@@ -161,7 +161,7 @@ svd_dag = DAG(
     schedule_interval='@daily',
     default_args={
         'owner': 'airflow',
-        'start_date': datetime(2024, 11, 3),
+        'start_date': datetime(2024, 11, 22),
     }
 )
 

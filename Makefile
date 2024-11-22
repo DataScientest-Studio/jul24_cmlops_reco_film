@@ -49,14 +49,14 @@ setup2: network
 # Start: start all services
 start: network
 	cd postgres && docker compose up -d
-	./wait-for-it.sh 0.0.0.0:5430 --timeout=60 --strict -- echo "Database is up"
+	./wait-for-it.sh 0.0.0.0:5432 --timeout=60 --strict -- echo "Database is up"
 	docker compose up -d
 	cd airflow && docker compose up -d
 	@echo "##########################"
-	@echo "Pg Admin: http://127.0.0.1:5431"
+	@echo "Pg Admin: http://localhost:5050"
 	@echo "Airflow: http://127.0.0.1:8081"
 	@echo "Streamlit: http://localhost:8501"
-	@echo "FastAPI: http://localhost:8001/docs"
+	@echo "FastAPI: http://localhost:8002/docs"
 	@echo "Grafana: http://localhost:3000"
 	@echo "MlFlow: http://localhost:5000"
 

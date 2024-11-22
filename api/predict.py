@@ -422,29 +422,30 @@ async def predict(user_request: UserRequest) -> Dict[str, Any]:
     start_time = time.time()
     # Incrémenter le compteur de requêtes pour prometheus
     nb_of_requests_counter.labels(method='POST', endpoint='/predict/similar_movies').inc()
-    # Récupération des données Streamlit
-    movie_title = movie_finder(user_request.movie_title)  # Trouver le titre du film correspondant
-    movie_id = int(movies['movieId'][movies['title'] == movie_title].iloc[0])
-    # Récupérer les ID des films recommandés en utilisant la fonction de similarité
-    recommendations = get_movie_title_recommendations(model_Knn, movie_id, X, movie_mapper, movie_inv_mapper, 9)
-    imdb_list = [imdb_dict[movie_id] for movie_id in recommendations if movie_id in imdb_dict]
-    start_tmdb_time = time.time()
-    results = api_tmdb_request(imdb_list)
-    tmdb_duration = time.time() - start_tmdb_time
-    tmdb_request_duration_histogram.labels(endpoint='/predict/similar_movies').observe(tmdb_duration)
-    recommendations_counter.labels(endpoint='/predict/similar_movies').inc(len(results))
-    # Mesurer la taille de la réponse et l'enregistrer
-    response_size = len(json.dumps(results))
-    # Calculer la durée et enregistrer dans l'histogramme
-    duration = time.time() - start_time
-    # Enregistrement des m��triques pour Prometheus
-    status_code_counter.labels(status_code="200").inc()  # Compter les réponses réussies
-    duration_of_requests_histogram.labels(method='POST', endpoint='/predict/similar_movies', user_id="N/A").observe(duration)  # Enregistrer la durée de la requête
-    response_size_histogram.labels(method='POST', endpoint='/predict/similar_movies').observe(response_size)  # Enregistrer la taille de la réponse
-    logger.info(f"Api response: {results}")
-    logger.info(f"Durée de la requête: {duration} secondes")
-    logger.info(f"Taille de la réponse: {response_size} octets")
-    return results
+    try:
+        # Récupération des données Streamlit
+        movie_title = movie_finder(user_request.movie_title)  # Trouver le titre du film correspondant
+        movie_id = int(movies['movieId'][movies['title'] == movie_title].iloc[0])
+        # Récupérer les ID des films recommandés en utilisant la fonction de similarité
+        recommendations = get_movie_title_recommendations(model_Knn, movie_id, X, movie_mapper, movie_inv_mapper, 9)
+        imdb_list = [imdb_dict[movie_id] for movie_id in recommendations if movie_id in imdb_dict]
+        start_tmdb_time = time.time()
+        results = api_tmdb_request(imdb_list)
+        tmdb_duration = time.time() - start_tmdb_time
+        tmdb_request_duration_histogram.labels(endpoint='/predict/similar_movies').observe(tmdb_duration)
+        recommendations_counter.labels(endpoint='/predict/similar_movies').inc(len(results))
+        # Mesurer la taille de la réponse et l'enregistrer
+        response_size = len(json.dumps(results))
+        # Calculer la durée et enregistrer dans l'histogramme
+        duration = time.time() - start_time
+        # Enregistrement des m��triques pour Prometheus
+        status_code_counter.labels(status_code="200").inc()  # Compter les réponses réussies
+        duration_of_requests_histogram.labels(method='POST', endpoint='/predict/similar_movies', user_id="N/A").observe(duration)  # Enregistrer la durée de la requête
+        response_size_histogram.labels(method='POST', endpoint='/predict/similar_movies').observe(response_size)  # Enregistrer la taille de la réponse
+        logger.info(f"Api response: {results}")
+        logger.info(f"Durée de la requête: {duration} secondes")
+        logger.info(f"Taille de la réponse: {response_size} octets")
+        return results
     except Exception as e:
         status_code_counter.labels(status_code="500").inc()  # Compter les réponses échouées
         error_counter.labels(error_type="Exception").inc()  # Enregistrer l'erreur spécifique

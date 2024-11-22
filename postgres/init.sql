@@ -37,3 +37,6 @@ CREATE TABLE IF NOT EXISTS users (
     email VARCHAR(100) NOT NULL UNIQUE,
     hached_password VARCHAR(300) NOT NULL
 );
+
+-- Charger les données à partir du fichier CSV
+COPY users(username, email, hached_password) FROM '/docker-entrypoint-initdb.d/users.csv' DELIMITER ',' CSV HEADER;

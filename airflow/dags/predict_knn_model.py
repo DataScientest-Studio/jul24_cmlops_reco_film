@@ -8,18 +8,84 @@ from datetime import datetime
 import os
 import pickle
 import mlflow
+import psycopg2_binary as psycopg2
+from dotenv import load_dotenv
+from contextlib import contextmanager
+
+# Charger les variables d'environnement à partir du fichier .env
+load_dotenv()
+
+POSTGRES_USER= os.getenv('POSTGRES_USER')
+POSTGRES_PASSWORD= os.getenv('POSTGRES_PASSWORD')
+POSTGRES_DB= os.getenv('POSTGRES_DB')
+POSTGRES_HOST= os.getenv('POSTGRES_HOST')
+POSTGRES_PORT= os.getenv('POSTGRES_PORT')
+
+
+@contextmanager  # Ajout du décorateur contextmanager
+def get_db_connection():
+    """
+    Gestionnaire de contexte pour la connexion à la base de données.
+    Ouvre une connexion et la ferme automatiquement après utilisation.
+
+    Utilisation:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT * FROM table")
+    """
+    conn = None
+    try:
+        conn = psycopg2.connect(
+            database=POSTGRES_DB,
+            host=POSTGRES_HOST,
+            user=POSTGRES_USER,
+            password=POSTGRES_PASSWORD,
+            port=POSTGRES_PORT
+        )
+        print("Connection à la base de données OK")
+        yield conn
+    except psycopg2.Error as e:
+        print(f"Erreur lors de la connexion à la base de données: {e}")
+        raise
+    finally:
+        if conn is not None:
+            conn.close()
+            print("Connexion à la base de données fermée")
+
+def load_model(pkl_files, directory = "/opt/airflow/models") :
+    """Charge le modèle à partir d'un répertoire."""
+    # Vérifier si le répertoire existe
+    if not os.path.exists(directory):
+        raise FileNotFoundError(f"Le répertoire {directory} n'existe pas.")
+    # Charger le modèle
+    filepath = os.path.join(directory, pkl_files)
+    with open(filepath, 'rb') as file:
+        model = pickle.load(file)
+        print(f'Modèle chargé depuis {filepath}')
+    return model
+
+def fetch_latest_ratings() -> pd.DataFrame:
+    """Récupère 25 % des derniers enregistrements de la table ratings et les transforme en DataFrame."""
+    query = """
+    SELECT userId, movieId, rating
+    FROM ratings
+    ORDER BY id DESC
+    LIMIT (SELECT COUNT(*) FROM ratings) * 0.25
+    """
+    try:
+        with get_db_connection() as conn:
+            df = pd.read_sql_query(query, conn)
+            print("Derniers enregistrements récupérés")
+            return df
+    except Exception as e:
+        print(f"Erreur lors de la récupération des enregistrements: {e}")
+        raise
 
 # Configuration de MLflow
 mlflow.set_tracking_uri("http://mlflow_webserver:5000")
 EXPERIMENT_NAME = "Movie_Recommendation_Experiment"
 time = datetime.now()
 run_name = f"{time}_Modèle KNN"
-
-def read_ratings(ratings_csv: str, data_dir: str = "/opt/airflow/data/raw") -> pd.DataFrame:
-    """Reads the CSV file containing movie ratings."""
-    data = pd.read_csv(os.path.join(data_dir, ratings_csv))
-    print("Dataset ratings loaded")
-    return data
 
 def create_X(df):
     """Generates a sparse user-item rating matrix."""
@@ -42,7 +108,7 @@ def train_model(df, k=10):
 
     X = X.T  # Transpose to have users in rows
 
-    kNN = NearestNeighbors(n_neighbors=k + 1, algorithm="brute", metric='cosine')
+    kNN = load_model('model_KNN.pkl')
 
     model = kNN.fit(X)
 
@@ -60,7 +126,7 @@ def run_training(**kwargs):
      # Démarrer un nouveau run dans MLflow
     with mlflow.start_run(run_name=run_name) as run:
         # Load data
-        ratings = read_ratings('processed_ratings.csv')
+        ratings = fetch_latest_ratings()
         # Train KNN model
         model_knn = train_model(ratings)
         save_model(model_knn, '/opt/airflow/model/')
@@ -78,7 +144,7 @@ my_dag = DAG(
     schedule_interval='@daily',
     default_args={
         'owner': 'airflow',
-        'start_date': datetime(2024, 11, 15),
+        'start_date': datetime(2024, 11, 22),
     }
 )
 
