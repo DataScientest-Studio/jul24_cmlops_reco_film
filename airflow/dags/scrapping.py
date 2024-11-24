@@ -82,12 +82,7 @@ def scrape_imdb_first_page(task_instance):
         end_time = time.time()
         duration = end_time - start_time
 
-        try:
-            statsd = BaseHook.get_connection('statsd_default')  # Initialiser statsd pour le suivi des métriques
-            statsd.gauge('imdb_scraper.duration', duration)
-            statsd.increment('imdb_scraper.success' if not e else 'imdb_scraper.failure')
-        except AirflowNotFoundException:
-            logger.warning("La connexion 'statsd_default' n'est pas définie.")
+        logger.info(f"Durée du scraping IMDb: {duration} secondes")
 
 def genres_request(task_instance):
     """Effectue des requêtes à l'API TMDB pour récupérer les informations des films."""
@@ -130,13 +125,19 @@ def api_tmdb_request(task_instance):
             logger.info("Données reçues pour le film index %s: %s", index, data)
             if data["movie_results"]:
                 movie_info = data["movie_results"][0]
+                movie_info = data["movie_results"][0]
+                release_date = movie_info["release_date"]
+                release_year = release_date.split("-")[0]  # Extraire l'année
+
                 results[str(index)] = {
-                    "movieId": movie_info["id"],
+                    "tmdb_id": movie_info["id"],
                     "title": movie_info["title"],
                     "genre_ids": movie_info['genre_ids'],
-                    "imbd_number": movie_id,
+                    "imbd_id": movie_id,
+                    "date": release_date,
+                    "year": release_year,  # Ajouter l'année extraite
+                    "genres": [genres[str(genre_id)] for genre_id in movie_info['genre_ids']]
                 }
-                results[str(index)]["genres"] = [genres[str(genre_id)] for genre_id in movie_info['genre_ids']]
 
         else:
             results[str(index)] = {"error": f"Request failed with status code {response.status_code}"}
@@ -151,6 +152,11 @@ def insert_data_movies(task_instance):
         with get_db_connection() as conn:
             with conn.cursor() as cur:
                 for index, movie_data in api_results.items():
+                    count = 0
+                    # Exécuter la requête pour récupérer la valeur maximale de movieId
+                    cur.execute("SELECT MAX(movieId) FROM movies")
+                    max_movie_id = cur.fetchone()[0]
+                    movieId = max_movie_id + 1
                     # Vérifier si une erreur a été retournée pour ce film
                     if "error" in movie_data:
                         logger.error(f"Erreur pour le film index {index}: {movie_data['error']}")
@@ -158,30 +164,29 @@ def insert_data_movies(task_instance):
 
                     title = movie_data["title"]
                     genres = movie_data["genres"]
-                    imdb_number = movie_data["imbd_number"]
+                    imdb_id = movie_data["imbd_id"]
+                    tmdb_id = movie_data["tmdb_id"]
+                    year = movie_data["year"]
 
                     # Éviter les doublons dans la base de données
-                    cur.execute("SELECT 1 FROM movies WHERE title = %s", (title,))
+                    cur.execute("SELECT 1 FROM movies WHERE title = %s AND year = %s", (title, year))
 
                     if cur.fetchone() is None:  # Si le film n'existe pas déjà
+                        count += 1
                         genres_str = ','.join(genres)  # Convertir la liste de genres en chaîne de caractères
-
                         # Insertion du film et récupération de l'ID inséré
                         cur.execute("""
-                            INSERT INTO movies (title, genres)
-                            VALUES (%s, %s)
-                            RETURNING movieId
-                        """, (title, genres_str))
-
-                        new_movie_id = cur.fetchone()[0]  # Récupération de l'ID du film nouvellement inséré
+                            INSERT INTO movies (movieId, title, genres, year)
+                            VALUES (%s, %s, %s, %s)
+                        """, (movieId, title, genres_str, year))
 
                         # Insertion du lien avec l'ID du film
                         cur.execute("""
-                            INSERT INTO links (movieId, imdbId)
-                            VALUES (%s, %s)
-                        """, (new_movie_id, imdb_number))
+                            INSERT INTO links (movieId, imdbId, tmdbId)
+                            VALUES (%s, %s, %s)
+                        """, (movieId, imdb_id, tmdb_id))
 
-                        logger.info(f"Film inséré: {title} avec ID {new_movie_id}")
+                        logger.info(f"Film inséré: {title} avec ID {movieId}")
                     else:
                         logger.info(f"Le film {title} existe déjà dans la base de données.")
 
@@ -189,16 +194,7 @@ def insert_data_movies(task_instance):
 
                 logger.info("Données insérées avec succès dans les tables movies & links.")
 
-                # Envoyer la métrique du nombre de films insérés
-                try:
-                    statsd = BaseHook.get_connection('statsd_default')
-                    statsd.gauge('insert_db.movies_inserted', len(api_results))  # Compte total des titres traités
-
-                except AirflowNotFoundException:
-                    logger.warning("La connexion 'statsd_default' n'est pas définie.")
-
-                except Exception as e:
-                    logger.error(f"Erreur lors de l'envoi des métriques: {e}")
+                logger.info(f"Nombre de films insérés: {count}")
 
     except Exception as e:
         logger.error(f"Erreur lors de la connexion à la base de données: {e}")
@@ -207,16 +203,7 @@ def insert_data_movies(task_instance):
         end_time = time.time()
         duration = end_time - start_time
 
-        try:
-            statsd = BaseHook.get_connection('statsd_default')  # Initialiser statsd pour le suivi des métriques
-            statsd.gauge('insert_db.duration', duration)
-            statsd.increment('insert_db.success' if not e else 'insert_db.failure')
-
-        except AirflowNotFoundException:
-            logger.warning("La connexion 'statsd_default' n'est pas définie.")
-
-        except Exception as e:
-            logger.error(f"Erreur lors de l'envoi des métriques de durée: {e}")
+        logger.info(f"Durée de l'insertion des données: {duration} secondes")
 
 # Arguments par défaut pour le DAG
 default_args = {

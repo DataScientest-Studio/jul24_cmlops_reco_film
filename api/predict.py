@@ -379,7 +379,7 @@ async def predict(user_request: UserRequest) -> Dict[str, Any]:
     try:
         # Forcer la conversion en int
         user_id = int(user_request.userId)
-        recommendations = get_user_recommendations(user_id, model_svd, ratings, n_recommendations = 8)
+        recommendations = get_user_recommendations(user_id, model_svd, ratings, n_recommendations = 9)
         logger.info(f"Recommandations pour l'utilisateur {userId}: {recommendations}")
         imdb_list = [imdb_dict[movie_id] for movie_id in recommendations if movie_id in imdb_dict]
         start_tmdb_time = time.time()

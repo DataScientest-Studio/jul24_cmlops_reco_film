@@ -98,7 +98,7 @@ def train_model() -> tuple:
 
         # Préparer les données pour Surprise
         reader = Reader(rating_scale=(0.5, 5))
-        data = Dataset.load_from_df(ratings[['userId', 'movieId', 'rating']], reader=reader)
+        data = Dataset.load_from_df(ratings[['userid', 'movieid', 'rating']], reader=reader)
 
         # Diviser les données en ensembles d'entraînement et de test
         trainset, testset = train_test_split(data, test_size=0.15)

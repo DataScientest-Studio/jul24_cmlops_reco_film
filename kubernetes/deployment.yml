@@ -19,66 +19,126 @@ spec:
       storage: 1Gi
 
 ---
-# ConfigMap for environment variables
+# CONFIGMAP POUR NOS SERVICES
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: app-config
+  name: posgres-mlfow-config
+  namespace: reco-movies
+data:
+  POSTGRES_DB: "mlflow"
+  POSTGRES_USER: "mlflow"
+  POSTGRES_PASSWORD: "mlflow"
+  MLFLOW_S3_ENDPOINT_URL: "http://s3-artifact-storage:9000"
+  MLFLOW_TRACKING_URI: "http://mlflow-service:5000"
+  AWS_ACCESS_KEY_ID: "mlflow_access"
+  AWS_SECRET_ACCESS_KEY: "mlflow_secret"
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-api-config
   namespace: reco-movies
 data:
   POSTGRES_DB: "reco_movies"
   POSTGRES_USER: "antoine"
-  MLFLOW_S3_ENDPOINT_URL: "http://s3-artifact-storage:9000"
-  MLFLOW_TRACKING_URI: "http://mlflow-service:5000"
 
 ---
-# Secrets
+# SECRETS
+
 apiVersion: v1
 kind: Secret
 metadata:
-  name: app-secrets
+  name: postgres-api-secrets
   namespace: reco-movies
 type: Opaque
 data:
   POSTGRES_PASSWORD: ZGF0YXNjaWVudGVzdA== # base64 encoded
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres-mlflow-secrets
+  namespace: reco-movies
+type: Opaque
+data:
+  POSTGRES_PASSWORD: bWxmbG93 # base64 encoded
   AWS_ACCESS_KEY_ID: bWxmbG93X2FjY2Vzcw== # base64 encoded 'mlflow_access'
   AWS_SECRET_ACCESS_KEY: bWxmbG93X3NlY3JldA== # base64 encoded 'mlflow_secret'
 
 ---
-# Postgres Deployment
+# Postgres API Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: postgres
+  name: api-postgres
+  namespace: reco-movies
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: api-postgres
+  template:
+    metadata:
+      labels:
+        app: api-postgres
+    spec:
+      containers:
+        - name: db
+          image: postgres:16-alpine
+          envFrom:
+            - configMapRef:
+                name: postgres-api-config
+            - secretRef:
+                name: postgres-api-secrets
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - name: pg-data
+              mountPath: /var/lib/postgresql/data
+      volumes:
+        - name: pg-data
+          persistentVolumeClaim:
+            claimName: postgres-pvc
+
+---
+# Postgres MLFLOW Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mlflow-postgres
   namespace: reco-movies
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: postgres
+      app: postgres-mlflow
   template:
     metadata:
       labels:
-        app: postgres
+        app: postgres-mlflow
     spec:
       containers:
-      - name: postgres
-        image: postgres:16-alpine
-        envFrom:
-        - configMapRef:
-            name: app-config
-        - secretRef:
-            name: app-secrets
-        ports:
-        - containerPort: 5432
-        volumeMounts:
-        - name: postgres-storage
-          mountPath: /var/lib/postgresql/data
+        - name: postgres-mlflow
+          image: postgres:13
+          envFrom:
+            - configMapRef:
+                name: posgres-mlfow-config
+            - secretRef:
+                name: postgres-mlflow-secrets
+          ports:
+            - containerPort: 5429
+          volumeMounts:
+            - name: postgres-db-volume-mlflow
+              mountPath: /var/lib/postgresql/data
       volumes:
-      - name: postgres-storage
-        persistentVolumeClaim:
-          claimName: postgres-pvc
-
+        - name: postgres-db-volume-mlflow
+          persistentVolumeClaim:
+            claimName: postgres-pvc
 ---
 # MLflow Deployment
 apiVersion: apps/v1
@@ -97,15 +157,15 @@ spec:
         app: mlflow
     spec:
       containers:
-      - name: mlflow
-        image: mlflow-custom:latest
-        ports:
-        - containerPort: 5000
-        envFrom:
-        - configMapRef:
-            name: app-config
-        - secretRef:
-            name: app-secrets
+        - name: mlflow-webserver
+          image: python:3.9-slim-buster
+          ports:
+            - containerPort: 5000
+          envFrom:
+            - configMapRef:
+                name: posgres-mlfow-config
+            - secretRef:
+                name: posgres-mlfow-secrets
 
 ---
 # FastAPI Deployment
@@ -125,20 +185,20 @@ spec:
         app: fastapi
     spec:
       containers:
-      - name: fastapi
-        image: fastapi-app:latest
-        ports:
-        - containerPort: 8000
-        volumeMounts:
-        - name: ml-data
-          mountPath: /app/raw
-        - name: ml-models
-          mountPath: /app/model
+        - name: fastapi
+          image: python:3.12
+          ports:
+            - containerPort: 8002
+          volumeMounts:
+            - name: ml-data
+              mountPath: /app/raw
+            - name: ml-models
+              mountPath: /app/model
       volumes:
-      - name: ml-data
-        emptyDir: {}
-      - name: ml-models
-        emptyDir: {}
+        - name: ml-data
+          emptyDir: {}
+        - name: ml-models
+          emptyDir: {}
 
 ---
 # Streamlit Deployment
@@ -158,10 +218,10 @@ spec:
         app: streamlit
     spec:
       containers:
-      - name: streamlit
-        image: streamlit-app:latest
-        ports:
-        - containerPort: 8501
+        - name: streamlit
+          image: python:3.12
+          ports:
+            - containerPort: 8501
 
 ---
 # Prometheus Deployment
@@ -181,21 +241,21 @@ spec:
         app: prometheus
     spec:
       containers:
-      - name: prometheus
-        image: prom/prometheus:latest
-        ports:
-        - containerPort: 9090
-        volumeMounts:
-        - name: prometheus-config
-          mountPath: /etc/prometheus/
-        - name: prometheus-storage
-          mountPath: /prometheus/
+        - name: prometheus
+          image: prom/prometheus:latest
+          ports:
+            - containerPort: 9090
+          volumeMounts:
+            - name: prometheus-config
+              mountPath: /etc/prometheus/
+            - name: shared-prometheus
+              mountPath: /var/log/prometheus
       volumes:
-      - name: prometheus-config
-        configMap:
-          name: prometheus-config
-      - name: prometheus-storage
-        emptyDir: {}
+        - name: prometheus-config
+          configMap:
+            name: prometheus-config
+        - name: shared-prometheus
+          emptyDir: {}
 
 ---
 # Grafana Deployment
@@ -215,16 +275,16 @@ spec:
         app: grafana
     spec:
       containers:
-      - name: grafana
-        image: grafana/grafana-enterprise
-        ports:
-        - containerPort: 3000
-        volumeMounts:
-        - name: grafana-storage
-          mountPath: /var/lib/grafana
+        - name: grafana
+          image: grafana/grafana-enterprise
+          ports:
+            - containerPort: 3000
+          volumeMounts:
+            - name: grafana-data
+              mountPath: /var/lib/grafana
       volumes:
-      - name: grafana-storage
-        emptyDir: {}
+        - name: grafana-data
+          emptyDir: {}
 
 ---
 # Services
@@ -237,7 +297,7 @@ spec:
   selector:
     app: mlflow
   ports:
-  - port: 5000
+    - port: 5000
   type: ClusterIP
 
 ---
@@ -250,7 +310,7 @@ spec:
   selector:
     app: fastapi
   ports:
-  - port: 8000
+    - port: 8000
   type: LoadBalancer
 
 ---
@@ -263,7 +323,7 @@ spec:
   selector:
     app: streamlit
   ports:
-  - port: 8501
+    - port: 8501
   type: LoadBalancer
 
 ---
@@ -276,7 +336,7 @@ spec:
   selector:
     app: prometheus
   ports:
-  - port: 9090
+    - port: 9090
   type: ClusterIP
 
 ---
@@ -289,7 +349,7 @@ spec:
   selector:
     app: grafana
   ports:
-  - port: 3000
+    - port: 3000
   type: LoadBalancer
 
 ---
@@ -317,20 +377,20 @@ metadata:
   namespace: reco-movies
 spec:
   rules:
-  - host: reco-movies.local
-    http:
-      paths:
-      - path: /api
-        pathType: Prefix
-        backend:
-          service:
-            name: fastapi-service
-            port:
-              number: 8000
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: streamlit-service
-            port:
-              number: 8501
+    - host: reco-movies.local
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: fastapi-service
+                port:
+                  number: 8000
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: streamlit-service
+                port:
+                  number: 8501

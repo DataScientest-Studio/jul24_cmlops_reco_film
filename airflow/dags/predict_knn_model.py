@@ -8,7 +8,7 @@ from datetime import datetime
 import os
 import pickle
 import mlflow
-import psycopg2_binary as psycopg2
+import psycopg2
 from dotenv import load_dotenv
 from contextlib import contextmanager
 
@@ -89,14 +89,14 @@ run_name = f"{time}_Modèle KNN"
 
 def create_X(df):
     """Generates a sparse user-item rating matrix."""
-    M = df['userId'].nunique()
-    N = df['movieId'].nunique()
+    M = df['userid'].nunique()
+    N = df['movieid'].nunique()
 
-    user_mapper = dict(zip(np.unique(df["userId"]), list(range(M))))
-    movie_mapper = dict(zip(np.unique(df["movieId"]), list(range(N))))
+    user_mapper = dict(zip(np.unique(df["userid"]), list(range(M))))
+    movie_mapper = dict(zip(np.unique(df["movieid"]), list(range(N))))
 
-    user_index = [user_mapper[i] for i in df['userId']]
-    item_index = [movie_mapper[i] for i in df['movieId']]
+    user_index = [user_mapper[i] for i in df['userid']]
+    item_index = [movie_mapper[i] for i in df['movieid']]
 
     X = csr_matrix((df["rating"], (user_index, item_index)), shape=(M, N))
 
@@ -116,10 +116,10 @@ def train_model(df, k=10):
 
 def save_model(model, filepath: str) -> None:
     """Sauvegarde le modèle entraîné dans un fichier."""
-    directory = os.path.join(filepath, 'model_knn.pkl')
+    directory = os.path.join(filepath, 'model_KNN.pkl')
     with open(directory, 'wb') as file:
         pickle.dump(model, file)
-        print(f'Modèle sauvegardé sous {filepath}/model.pkl')
+        print(f'Modèle sauvegardé sous {filepath}/model_KNN.pkl')
 
 def run_training(**kwargs):
     """Main function to train the model."""
@@ -129,7 +129,7 @@ def run_training(**kwargs):
         ratings = fetch_latest_ratings()
         # Train KNN model
         model_knn = train_model(ratings)
-        save_model(model_knn, '/opt/airflow/model/')
+        save_model(model_knn, '/opt/airflow/models/')
 
         # Enregistrer les métriques dans MLflow pour suivi ultérieur
         mlflow.log_param("n_neighbors", 11)
