@@ -1,0 +1,54 @@
+# pv-processed-data.yaml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-processed-data
+spec:
+  capacity:
+    storage: 1Gi # Ajustez la taille selon vos besoins.
+  accessModes:
+    - ReadWriteMany # Permettre plusieurs montages en lecture-écriture.
+  hostPath:
+    path: /home/antoine/jul24_cmlops_reco_film/ml/data/processed
+
+---
+# pv-models.yaml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-models
+spec:
+  capacity:
+    storage: 1Gi # Ajustez la taille selon vos besoins.
+  accessModes:
+    - ReadWriteMany # Permettre plusieurs montages en lecture-écriture.
+  hostPath:
+    path: /home/antoine/jul24_cmlops_reco_film/ml/models
+
+---
+# pvc-processed-data.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-processed-data
+  namespace: reco-movies
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Gi
+
+---
+# pvc-models.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-models
+  namespace: reco-movies
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Gi

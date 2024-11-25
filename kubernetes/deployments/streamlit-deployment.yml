@@ -1,0 +1,21 @@
+# Déploiement Streamlit
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: streamlit
+  namespace: reco-movies
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: streamlit
+  template:
+    metadata:
+      labels:
+        app: streamlit
+    spec:
+      containers:
+        - name: streamlit
+          image: antoinepela/projet_reco_movies:streamlit-latest
+          ports:
+            - containerPort: 8501

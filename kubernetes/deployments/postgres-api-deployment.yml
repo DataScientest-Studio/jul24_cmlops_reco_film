@@ -1,0 +1,56 @@
+# Déploiement Postgres pour l'API FastAPI
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-postgres
+  namespace: reco-movies
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: api-postgres
+  template:
+    metadata:
+      labels:
+        app: api-postgres
+    spec:
+      containers:
+        - name: postgres-api
+          image: antoinepela/projet_reco_movies:postgres-api-latest
+          envFrom:
+            - configMapRef:
+                name: postgres-api-config
+            - secretRef:
+                name: postgres-api-secrets
+          ports:
+            - containerPort: 5432 # Port par défaut de Postgres
+          volumeMounts:
+            - name: init-sql-volume
+              mountPath: /docker-entrypoint-initdb.d/init.sql # Chemin où PostgreSQL cherche les scripts d'initialisation.
+            - name: processed-movies-volume
+              mountPath: /docker-entrypoint-initdb.d/processed_movies.csv # Chemin pour le fichier CSV.
+            - name: processed-ratings-volume
+              mountPath: /docker-entrypoint-initdb.d/processed_ratings.csv # Chemin pour le fichier CSV.
+            - name: processed-links-volume
+              mountPath: /docker-entrypoint-initdb.d/processed_links.csv # Chemin pour le fichier CSV.
+            - name: posgres-api-volume
+              mountPath: /var/lib/postgresql/data # Chemin où PostgreSQL stocke ses données.
+      volumes:
+        - name: init-sql-volume
+          persistentVolumeClaim:
+            claimName: pvc-init-sql # Référence au PVC pour init.sql.
+        - name: processed-movies-volume
+          persistentVolumeClaim:
+            claimName: pvc-processed-movies # Référence au PVC pour processed_movies.csv.
+        - name: processed-ratings-volume
+          persistentVolumeClaim:
+            claimName: pvc-processed-ratings # Référence au PVC pour processed_ratings.csv.
+        - name: processed-links-volume
+          persistentVolumeClaim:
+            claimName: pvc-processed-links # Référence au PVC pour processed_links.csv.
+        - name: posgres-api-volume
+          persistentVolumeClaim:
+            claimName: posgres-api-volume # Référence au PVC pour processed_links.csv.
+

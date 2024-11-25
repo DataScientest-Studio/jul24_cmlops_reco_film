@@ -1,0 +1,26 @@
+# Déploiement MLflow Webserver
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mlflow
+  namespace: reco-movies
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mlflow
+  template:
+    metadata:
+      labels:
+        app: mlflow
+    spec:
+      containers:
+        - name: mlflow-webserver
+          image: antoinepela/projet_reco_movies:mlflow-webserver-latest
+          ports:
+            - containerPort: 5000
+          envFrom:
+            - configMapRef:
+                name: posgres-mlfow-config
+            - secretRef:
+                name: postgres-mlflow-secrets

@@ -1,0 +1,38 @@
+# Déploiement Postgres pour l'API FastAPI
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fastapi
+  namespace: reco-movies
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: fastapi
+  template:
+    metadata:
+      labels:
+        app: fastapi
+    spec:
+      containers:
+        - name: fastapi
+          image: antoinepela/projet_reco_movies:fastapi-latest
+          envFrom:
+            - configMapRef:
+                name: fastapi-config
+            - secretRef:
+                name: fastapi-secrets
+          ports:
+            - containerPort: 8000
+          volumeMounts:
+            - name: processed-data-volume
+              mountPath: /app/raw
+            - name: models-volume
+              mountPath: /app/model
+      volumes:
+        - name: processed-data-volume
+          persistentVolumeClaim:
+            claimName: pvc-processed-data
+        - name: models-volume
+          persistentVolumeClaim:
+            claimName: pvc-models

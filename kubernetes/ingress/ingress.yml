@@ -1,0 +1,25 @@
+# Ingress Configuration (pour accéder aux services externes)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: app-ingress
+  namespace: reco-movies
+spec:
+  rules:
+    - host: "reco-movies.local"
+      http:
+        paths:
+          - path: "/api"
+            pathType: Prefix
+            backend:
+              service:
+                name: fastapi-service
+                port:
+                  number: 8000
+          - path: "/"
+            pathType: Prefix
+            backend:
+              service:
+                name: streamlit-service
+                port:
+                  number: 8501

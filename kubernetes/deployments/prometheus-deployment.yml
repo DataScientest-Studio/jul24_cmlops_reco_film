@@ -1,0 +1,36 @@
+# Déploiement Prometheus
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus
+  namespace: reco-movies
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prometheus
+  template:
+    metadata:
+      labels:
+        app: prometheus
+    spec:
+      containers:
+        - name: prometheus
+          image: antoinepela/projet_reco_movies:prometheus-latest
+          ports:
+            - containerPort: 9090
+          envFrom:
+            - configMapRef:
+                name: prometheus-config
+          volumeMounts:
+            - name: prometheus-config-volume
+              mountPath: /etc/prometheus/prometheus.yml # Chemin où le fichier de configuration sera monté.
+            - name: prometheus-logs
+              mountPath: /var/log/prometheus # Répertoire pour les logs.
+      volumes:
+        - name: prometheus-config-volume
+          persistentVolumeClaim:
+            claimName: pvc-prometheus-config # Référence au PVC pour le fichier de configuration.
+        - name: prometheus-logs
+          persistentVolumeClaim:
+            claimName: prometheus-logs

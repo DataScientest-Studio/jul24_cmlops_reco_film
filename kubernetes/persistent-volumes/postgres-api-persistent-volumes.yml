@@ -1,0 +1,128 @@
+### CREATION DES PV
+
+# pv-init-sql.yaml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-init-sql
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: /home/antoine/jul24_cmlops_reco_film/postgres/init.sql
+
+---
+# pv-processed-movies.yaml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-processed-movies
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: /home/antoine/jul24_cmlops_reco_film/ml/data/processed/processed_movies.csv
+
+---
+# pv-processed-ratings.yaml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-processed-ratings
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: /home/antoine/jul24_cmlops_reco_film/ml/data/processed/processed_ratings.csv
+
+---
+# pv-processed-links.yaml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-processed-links
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: /home/antoine/jul24_cmlops_reco_film/ml/data/processed/processed_links.csv
+
+---
+### CREATION DES PVC
+
+# pvc-init-sql.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-init-sql
+  namespace: reco-movies
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+
+---
+# pvc-processed-movies.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-processed-movies
+  namespace: reco-movies
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+
+---
+# pvc-processed-ratings.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-processed-ratings
+  namespace: reco-movies
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+
+---
+# pvc-processed-links.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-processed-links
+  namespace: reco-movies
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+
+---
+# pvc-processed-links.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: posgres-api-volume
+  namespace: reco-movies
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi

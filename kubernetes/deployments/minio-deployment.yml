@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: s3-artifact-storage
+  namespace: reco-movies
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: s3-artifact-storage
+  template:
+    metadata:
+      labels:
+        app: s3-artifact-storage
+    spec:
+      containers:
+        - name: s3-storage
+          image: minio/minio
+          ports:
+            - containerPort: 9000 # Port pour MinIO.
+            - containerPort: 9001 # Port pour l'interface web de MinIO.
+          env:
+            - name: MINIO_ROOT_USER
+              value: "mlflow_access"
+            - name: MINIO_ROOT_PASSWORD
+              value: "mlflow_secret"
+          command: ["server", "/data", "--console-address", ":9001"] # Commande pour démarrer MinIO.
+          volumeMounts:
+            - name: minio-data-volume
+              mountPath: /data # Chemin où les données seront stockées.
+      volumes:
+        - name: minio-data-volume
+          persistentVolumeClaim:
+            claimName: pvc-minio-data # Référence au PVC pour le stockage des données.
