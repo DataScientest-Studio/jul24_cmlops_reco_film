@@ -1,4 +1,6 @@
-.PHONY: help setup1 setup2 start stop down restart logs-supabase logs-airflow logs-api clean network
+NAMESPACE = reco-movies
+
+.PHONY: help setup1 setup2 start stop down restart logs-supabase logs-airflow logs-api clean network all namespace pv secrets configmaps deployments services ingress clean-kube
 
 # Help command to list all available targets
 help:
@@ -105,4 +107,45 @@ clean-db: network
 network:
 	docker network create backend || true
 
-# TODO: add targets for testing
+# MAKEFILE KUBERNETES
+all: namespace pv secrets configmaps deployments services ingress
+
+namespace:
+	kubectl apply -f kubernetes/namespace/namespace.yml
+
+pv:
+	kubectl apply -f kubernetes/persistent-volumes/fastapi-persistent-volume.yml
+	kubectl apply -f kubernetes/persistent-volumes/grafana-persistent-volume.yml
+	kubectl apply -f kubernetes/persistent-volumes/minio-persistent-volumes.yml
+	kubectl apply -f kubernetes/persistent-volumes/postgres-api-persistent-volumes.yml
+	kubectl apply -f kubernetes/persistent-volumes/prometheus-persistent-volume.yml
+
+secrets:
+	kubectl apply -f kubernetes/secrets/secrets.yml
+
+
+configmaps:
+	kubectl apply -f kubernetes/configmaps/configmaps.yml
+
+deployments:
+	kubectl apply -f kubernetes/deployments/postgres-api-deployment.yml
+	kubectl apply -f kubernetes/deployments/postgres-mlflow-deployment.yml
+	kubectl apply -f kubernetes/deployments/mlflow-deployment.yml
+	kubectl apply -f kubernetes/deployments/fastapi-deployment.yml
+	kubectl apply -f kubernetes/deployments/streamlit-deployment.yml
+	kubectl apply -f kubernetes/deployments/prometheus-deployment.yml
+	kubectl apply -f kubernetes/deployments/grafana-deployment.yml
+	kubectl apply -f kubernetes/deployments/node-exporter-deployment.yml
+	kubectl apply -f kubernetes/deployments/airflow-deployment.yml
+	kubectl apply -f kubernetes/deployments/minio-deployment.yml
+	kubectl apply -f kubernetes/deployments/postgres-exporter-deployment.yml
+
+
+services:
+	kubectl apply -f kubernetes/services/services.yml
+
+ingress:
+	kubectl apply -f kubernetes/ingress/ingress.yml
+
+clean-kube:
+	kubectl delete namespace $(NAMESPACE)
