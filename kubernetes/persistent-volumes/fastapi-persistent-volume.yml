@@ -1,54 +1,96 @@
-# pv-processed-data.yaml
+# pv-model-knn
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: pv-processed-data
+  name: pv-model-knn
 spec:
   capacity:
-    storage: 1Gi # Ajustez la taille selon vos besoins.
+    storage: 1Gi
   accessModes:
-    - ReadWriteMany # Permettre plusieurs montages en lecture-écriture.
+    - ReadWriteOnce
   hostPath:
-    path: /home/antoine/jul24_cmlops_reco_film/ml/data/processed
+    path: "/home/antoine/jul24_cmlops_reco_film/ml/models/model_KNN.pkl"
 
 ---
-# pv-models.yaml
+# pv-processed-movies.yaml
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: pv-models
+  name: pv-processed-movies
 spec:
   capacity:
-    storage: 1Gi # Ajustez la taille selon vos besoins.
+    storage: 1Gi
   accessModes:
-    - ReadWriteMany # Permettre plusieurs montages en lecture-écriture.
+    - ReadWriteOnce
   hostPath:
-    path: /home/antoine/jul24_cmlops_reco_film/ml/models
+    path: "/home/antoine/jul24_cmlops_reco_film/ml/data/processed/processed_movies.csv"
 
 ---
-# pvc-processed-data.yaml
+# pv-processed-ratings.yaml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-processed-ratings
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/home/antoine/jul24_cmlops_reco_film/ml/data/processed/processed_ratings.csv"
+
+---
+# pv-processed-links.yaml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-processed-links
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/home/antoine/jul24_cmlops_reco_film/ml/data/processed/processed_links.csv"
+---
+# pv-model-svd
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-model-svd
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/home/antoine/jul24_cmlops_reco_film/ml/models/model_SVD.pkl"
+---
+# pvc-model-knn
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: pvc-processed-data
+  name: pvc-model-knn
   namespace: reco-movies
 spec:
   accessModes:
-    - ReadWriteMany
+    - ReadWriteOnce
   resources:
     requests:
       storage: 1Gi
 
 ---
-# pvc-models.yaml
+# pvc-model-svd
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: pvc-models
+  name: pvc-model-svd
   namespace: reco-movies
 spec:
   accessModes:
-    - ReadWriteMany
+    - ReadWriteOnce
   resources:
     requests:
       storage: 1Gi
+---
+

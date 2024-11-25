@@ -1,4 +1,3 @@
-# Déploiement Postgres pour l'API FastAPI
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -17,22 +16,32 @@ spec:
       containers:
         - name: fastapi
           image: antoinepela/projet_reco_movies:fastapi-latest
-          envFrom:
-            - configMapRef:
-                name: fastapi-config
-            - secretRef:
-                name: fastapi-secrets
           ports:
             - containerPort: 8000
           volumeMounts:
-            - name: processed-data-volume
-              mountPath: /app/raw
-            - name: models-volume
-              mountPath: /app/model
+            - name: processed-movies-volume
+              mountPath: /app/raw/processed_movies.csv
+            - name: processed-ratings-volume
+              mountPath: /app/raw/processed_ratings.csv
+            - name: processed-links-volume
+              mountPath: /app/raw/processed_links.csv
+            - name: model-knn-volume
+              mountPath: /app/models/model_KNN.pkl
+            - name: model-svd-volume
+              mountPath: /app/models/model_SVD.pkl
       volumes:
-        - name: processed-data-volume
+        - name: movies-volume
           persistentVolumeClaim:
-            claimName: pvc-processed-data
-        - name: models-volume
+            claimName: pvc-processed-movies
+        - name: ratings-volume
           persistentVolumeClaim:
-            claimName: pvc-models
+            claimName: pvc-processed-ratings
+        - name: links-volume
+          persistentVolumeClaim:
+            claimName: pvc-processed-links
+        - name: model-knn-volume
+          persistentVolumeClaim:
+            claimName: pvc-model-knn
+        - name: model-svd-volume
+          persistentVolumeClaim:
+            claimName: pvc-model-svd

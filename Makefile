@@ -110,42 +110,46 @@ network:
 # MAKEFILE KUBERNETES
 all: namespace pv secrets configmaps deployments services ingress
 
-namespace:
-	kubectl apply -f kubernetes/namespace/namespace.yml
+# Vérifie si kubectl est connecté à un cluster
+check-kube:
+	@kubectl cluster-info > /dev/null 2>&1 || { echo "kubectl n'est pas connecté à un cluster"; exit 1; }
 
-pv:
-	kubectl apply -f kubernetes/persistent-volumes/fastapi-persistent-volume.yml
-	kubectl apply -f kubernetes/persistent-volumes/grafana-persistent-volume.yml
-	kubectl apply -f kubernetes/persistent-volumes/minio-persistent-volumes.yml
-	kubectl apply -f kubernetes/persistent-volumes/postgres-api-persistent-volumes.yml
-	kubectl apply -f kubernetes/persistent-volumes/prometheus-persistent-volume.yml
+namespace: check-kube
+	kubectl apply -f kubernetes/namespace/namespace.yml --validate=false
 
-secrets:
-	kubectl apply -f kubernetes/secrets/secrets.yml
+pv: check-kube
+	kubectl apply -f kubernetes/persistent-volumes/fastapi-persistent-volume.yml --validate=false
+	kubectl apply -f kubernetes/persistent-volumes/grafana-persistent-volume.yml --validate=false
+	kubectl apply -f kubernetes/persistent-volumes/minio-persistent-volumes.yml --validate=false
+	kubectl apply -f kubernetes/persistent-volumes/postgres-api-persistent-volumes.yml --validate=false
+	kubectl apply -f kubernetes/persistent-volumes/prometheus-persistent-volume.yml --validate=false
+	kubectl apply -f kubernetes/persistent-volumes/pgadmin-persistent-volume.yml --validate=false
 
+secrets: check-kube
+	kubectl apply -f kubernetes/secrets/secrets.yml --validate=false
 
-configmaps:
-	kubectl apply -f kubernetes/configmaps/configmaps.yml
+configmaps: check-kube
+	kubectl apply -f kubernetes/configmaps/configmaps.yml --validate=false
 
-deployments:
-	kubectl apply -f kubernetes/deployments/postgres-api-deployment.yml
-	kubectl apply -f kubernetes/deployments/postgres-mlflow-deployment.yml
-	kubectl apply -f kubernetes/deployments/mlflow-deployment.yml
-	kubectl apply -f kubernetes/deployments/fastapi-deployment.yml
-	kubectl apply -f kubernetes/deployments/streamlit-deployment.yml
-	kubectl apply -f kubernetes/deployments/prometheus-deployment.yml
-	kubectl apply -f kubernetes/deployments/grafana-deployment.yml
-	kubectl apply -f kubernetes/deployments/node-exporter-deployment.yml
-	kubectl apply -f kubernetes/deployments/airflow-deployment.yml
-	kubectl apply -f kubernetes/deployments/minio-deployment.yml
-	kubectl apply -f kubernetes/deployments/postgres-exporter-deployment.yml
+deployments: check-kube
+	kubectl apply -f kubernetes/deployments/postgres-api-deployment.yml --validate=false
+	kubectl apply -f kubernetes/deployments/postgres-mlflow-deployment.yml --validate=false
+	kubectl apply -f kubernetes/deployments/mlflow-deployment.yml --validate=false
+	kubectl apply -f kubernetes/deployments/fastapi-deployment.yml --validate=false
+	kubectl apply -f kubernetes/deployments/streamlit-deployment.yml --validate=false
+	kubectl apply -f kubernetes/deployments/prometheus-deployment.yml --validate=false
+	kubectl apply -f kubernetes/deployments/grafana-deployment.yml --validate=false
+	kubectl apply -f kubernetes/deployments/node-exporter-deployment.yml --validate=false
+	kubectl apply -f kubernetes/deployments/airflow-deployment.yml --validate=false
+	kubectl apply -f kubernetes/deployments/minio-deployment.yml --validate=false
+	kubectl apply -f kubernetes/deployments/postgres-exporter-deployment.yml --validate=false
+	kubectl apply -f kubernetes/deployments/pgadmin-deployment.yml --validate=false
 
-
-services:
+services: check-kube
 	kubectl apply -f kubernetes/services/services.yml
 
-ingress:
+ingress: check-kube
 	kubectl apply -f kubernetes/ingress/ingress.yml
 
-clean-kube:
+clean-kube: check-kube
 	kubectl delete namespace $(NAMESPACE)
