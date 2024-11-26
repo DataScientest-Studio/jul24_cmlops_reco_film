@@ -16,29 +16,35 @@ spec:
       containers:
         - name: fastapi
           image: antoinepela/projet_reco_movies:fastapi-latest
+          imagePullPolicy: Always # Force Kubernetes à toujours tirer l'image
+          env:
+            - name: POSTGRES_HOST
+              value: "postgres-api-service" # Nom du service PostgreSQL
+            - name: POSTGRES_PORT
+              value: "5432"
+            - name: POSTGRES_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: postgres-api-config
+                  key: POSTGRES_DB
+            - name: POSTGRES_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: postgres-api-config
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-api-secrets
+                  key: POSTGRES_PASSWORD
           ports:
             - containerPort: 8000
           volumeMounts:
-            - name: processed-movies-volume
-              mountPath: /app/raw/processed_movies.csv
-            - name: processed-ratings-volume
-              mountPath: /app/raw/processed_ratings.csv
-            - name: processed-links-volume
-              mountPath: /app/raw/processed_links.csv
             - name: model-knn-volume
               mountPath: /app/models/model_KNN.pkl
             - name: model-svd-volume
               mountPath: /app/models/model_SVD.pkl
       volumes:
-        - name: movies-volume
-          persistentVolumeClaim:
-            claimName: pvc-processed-movies
-        - name: ratings-volume
-          persistentVolumeClaim:
-            claimName: pvc-processed-ratings
-        - name: links-volume
-          persistentVolumeClaim:
-            claimName: pvc-processed-links
         - name: model-knn-volume
           persistentVolumeClaim:
             claimName: pvc-model-knn

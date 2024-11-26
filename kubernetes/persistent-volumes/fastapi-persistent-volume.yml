@@ -12,47 +12,6 @@ spec:
     path: "/home/antoine/jul24_cmlops_reco_film/ml/models/model_KNN.pkl"
 
 ---
-# pv-processed-movies.yaml
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: pv-processed-movies
-spec:
-  capacity:
-    storage: 1Gi
-  accessModes:
-    - ReadWriteOnce
-  hostPath:
-    path: "/home/antoine/jul24_cmlops_reco_film/ml/data/processed/processed_movies.csv"
-
----
-# pv-processed-ratings.yaml
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: pv-processed-ratings
-spec:
-  capacity:
-    storage: 1Gi
-  accessModes:
-    - ReadWriteOnce
-  hostPath:
-    path: "/home/antoine/jul24_cmlops_reco_film/ml/data/processed/processed_ratings.csv"
-
----
-# pv-processed-links.yaml
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: pv-processed-links
-spec:
-  capacity:
-    storage: 1Gi
-  accessModes:
-    - ReadWriteOnce
-  hostPath:
-    path: "/home/antoine/jul24_cmlops_reco_film/ml/data/processed/processed_links.csv"
----
 # pv-model-svd
 apiVersion: v1
 kind: PersistentVolume

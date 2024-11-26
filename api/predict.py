@@ -38,26 +38,70 @@ router = APIRouter(
 # ENSEMBLE DES FONCTIONS UTILISEES
 
 
-# Chargement des datasets
-def read_ratings(ratings_csv: str, data_dir: str = "/app/raw") -> pd.DataFrame:
-    """Reads the CSV file containing movie ratings."""
-    data = pd.read_csv(os.path.join(data_dir, ratings_csv))
-    print("Dataset ratings loaded")
-    return data
+# Chargement des datasets vai bdd
+def fetch_ratings() -> pd.DataFrame:
+    """Récupère enregistrements de la table ratings et les transforme en DataFrame."""
+    query = """
+    SELECT userId, movieId, rating
+    FROM ratings
+    """
+    try:
+        with get_db_connection() as conn:
+            df = pd.read_sql_query(query, conn)
+            print("Enregistrements table ratings récupérés")
+            return df
+    except Exception as e:
+        print(f"Erreur lors de la récupération des enregistrements: {e}")
+        raise
+
+def fetch_movies() -> pd.DataFrame:
+    """Récupère enregistrements de la table movies et les transforme en DataFrame."""
+    query = """
+    SELECT movieId, title, genres
+    FROM movies
+    """
+    try:
+        with get_db_connection() as conn:
+            df = pd.read_sql_query(query, conn)
+            print("Enregistrements table movies récupérés")
+            return df
+    except Exception as e:
+        print(f"Erreur lors de la récupération des enregistrements: {e}")
+        raise
+
+def fetch_links() -> pd.DataFrame:
+    """Récupère enregistrements de la table movies et les transforme en DataFrame."""
+    query = """
+    SELECT id, movieId, imdbId, tmdbId
+    FROM links
+    """
+    try:
+        with get_db_connection() as conn:
+            df = pd.read_sql_query(query, conn)
+            print("Enregistrements table links récupérés")
+            return df
+    except Exception as e:
+        print(f"Erreur lors de la récupération des enregistrements: {e}")
+        raise
+# def read_ratings(ratings_csv: str, data_dir: str = "/app/raw") -> pd.DataFrame:
+#     """Reads the CSV file containing movie ratings."""
+#     data = pd.read_csv(os.path.join(data_dir, ratings_csv))
+#     print("Dataset ratings loaded")
+#     return data
 
 
 
-def read_movies(movies_csv: str, data_dir: str = "/app/raw") -> pd.DataFrame:
-    """Reads the CSV file containing movie information."""
-    df = pd.read_csv(os.path.join(data_dir, movies_csv))
-    print("Dataset movies loaded")
-    return df
+# def read_movies(movies_csv: str, data_dir: str = "/app/raw") -> pd.DataFrame:
+#     """Reads the CSV file containing movie information."""
+#     df = pd.read_csv(os.path.join(data_dir, movies_csv))
+#     print("Dataset movies loaded")
+#     return df
 
-def read_links(links_csv: str, data_dir: str = "/app/raw") -> pd.DataFrame:
-    """Reads the CSV file containing movie information."""
-    df = pd.read_csv(os.path.join(data_dir, links_csv))
-    print("Dataset links loaded")
-    return df
+# def read_links(links_csv: str, data_dir: str = "/app/raw") -> pd.DataFrame:
+#     """Reads the CSV file containing movie information."""
+#     df = pd.read_csv(os.path.join(data_dir, links_csv))
+#     print("Dataset links loaded")
+#     return df
 
 
 # Chargement du dernier modèle
@@ -262,10 +306,19 @@ tmdb_request_duration_histogram = Histogram(
 
 # CHARGEMENT DES DONNEES AU DEMARRAGE DE API
 print("DEBUT DES CHARGEMENTS")
-# Chargement de nos dataframe depuis mongo_db
-ratings = read_ratings('processed_ratings.csv')
-movies = read_movies('processed_movies.csv')
-links = read_links('processed_links.csv')
+# test de connection à la base de données
+with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'")
+                tables = cur.fetchall()
+                # Imprimer les noms des tables
+                print("Tables présentes dans la base de données :")
+                for table in tables:
+                    print(table[0])
+# Chargement de nos dataframe
+ratings = fetch_ratings()
+movies = fetch_movies()
+links = fetch_links()
 # Chargement d'un modèle SVD pré-entraîné pour les recommandations
 model_svd = load_model('model_SVD.pkl')
 # Chargement de la matrice cosinus similarity
@@ -280,15 +333,7 @@ movie_idx = dict(zip(movies['title'], list(movies.index)))
 movie_titles = dict(zip(movies['movieId'], movies['title']))
 # Créer un dictionnaire pour un accès rapide
 imdb_dict = dict(zip(movies_links_df['movieId'], movies_links_df['imdbId']))
-# test de connection à la base de données
-with get_db_connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'")
-                tables = cur.fetchall()
-                # Imprimer les noms des tables
-                print("Tables présentes dans la base de données :")
-                for table in tables:
-                    print(table[0])
+
 print("FIN DES CHARGEMENTS")
 # ---------------------------------------------------------------
 

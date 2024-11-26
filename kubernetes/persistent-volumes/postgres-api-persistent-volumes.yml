@@ -11,7 +11,8 @@ spec:
   accessModes:
     - ReadWriteOnce
   hostPath:
-    path: /home/antoine/jul24_cmlops_reco_film/postgres/init.sql
+    path: "/home/antoine/jul24_cmlops_reco_film/postgres/init.sql"
+    type: File
 
 ---
 # pv-processed-movies.yaml
@@ -25,7 +26,8 @@ spec:
   accessModes:
     - ReadWriteOnce
   hostPath:
-    path: /home/antoine/jul24_cmlops_reco_film/ml/data/processed/processed_movies.csv
+    path: "/home/antoine/jul24_cmlops_reco_film/ml/data/processed/processed_movies.csv"
+    type: File
 
 ---
 # pv-processed-ratings.yaml
@@ -39,7 +41,8 @@ spec:
   accessModes:
     - ReadWriteOnce
   hostPath:
-    path: /home/antoine/jul24_cmlops_reco_film/ml/data/processed/processed_ratings.csv
+    path: "/home/antoine/jul24_cmlops_reco_film/ml/data/processed/processed_ratings.csv"
+    type: File
 
 ---
 # pv-processed-links.yaml
@@ -53,7 +56,23 @@ spec:
   accessModes:
     - ReadWriteOnce
   hostPath:
-    path: /home/antoine/jul24_cmlops_reco_film/ml/data/processed/processed_links.csv
+    path: "/home/antoine/jul24_cmlops_reco_film/ml/data/processed/processed_links.csv"
+    type: File
+
+---
+# pv-users.yaml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-users
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/home/antoine/jul24_cmlops_reco_film/ml/data/processed/users.csv"
+    type: File
 
 ---
 ### CREATION DES PVC
@@ -114,11 +133,11 @@ spec:
       storage: 1Gi
 
 ---
-# pvc-processed-links.yaml
+# pvc-posgres-api-volume.yaml
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: posgres-api-volume
+  name: postgres-api-volume
   namespace: reco-movies
 spec:
   accessModes:
@@ -126,3 +145,17 @@ spec:
   resources:
     requests:
       storage: 5Gi
+
+---
+# pvc-users.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-users
+  namespace: reco-movies
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi

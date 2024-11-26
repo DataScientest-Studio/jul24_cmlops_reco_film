@@ -16,7 +16,7 @@ spec:
                 name: fastapi-service
                 port:
                   number: 8000
-          - path: "/"
+          - path: "/streamlit"
             pathType: Prefix
             backend:
               service:

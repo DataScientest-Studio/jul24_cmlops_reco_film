@@ -46,5 +46,3 @@ metadata:
 data:
   MODEL_PATH: "/app/model/model.pkl"
   DATA_PATH: "/app/raw/movies.csv"
-  HOST: "0.0.0.0"
-  PORT: "8000"

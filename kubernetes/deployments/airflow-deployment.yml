@@ -17,6 +17,7 @@ spec:
       containers:
         - name: scheduler # Nom du conteneur.
           image: antoinepela/projet_reco_movies:airflow-scheduler-latest
+          imagePullPolicy: Always # Force Kubernetes à toujours tirer l'image
           env:
             - name: AIRFLOW__CORE__SQL_ALCHEMY_CONN
               value: postgresql+psycopg2://antoine@api-postgres:5432/reco_movies
