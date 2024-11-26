@@ -1,6 +1,6 @@
 NAMESPACE = reco-movies
 
-.PHONY: help setup1 setup2 start stop down restart logs-supabase logs-airflow logs-api clean network all namespace pv secrets configmaps deployments services ingress clean-kube
+.PHONY: help setup1 setup2 start stop down restart logs-supabase logs-airflow logs-api clean network all namespace pv secrets configmaps deployments services ingress clean-kube create-configmap
 
 # Help command to list all available targets
 help:
@@ -76,9 +76,6 @@ down:
 # Restart: restart all services
 restart: stop start
 
-# Logs: show logs for supabase, airflow and api
-logs-supabase:
-	docker compose -f supabase/docker/docker-compose.yml logs -f
 
 logs-airflow:
 	docker compose -f airflow/docker-compose.yaml logs -f
@@ -107,8 +104,8 @@ clean-db: network
 network:
 	docker network create backend || true
 
-# MAKEFILE KUBERNETES
-all: namespace pv secrets configmaps deployments services ingress
+###### MAKEFILE KUBERNETES
+all: namespace pv secrets configmaps create-configmap deployments services ingress
 
 # Vérifie si kubectl est connecté à un cluster
 check-kube:
@@ -116,6 +113,9 @@ check-kube:
 
 namespace: check-kube
 	kubectl apply -f kubernetes/namespace/namespace.yml --validate=false
+
+create-configmap: check-kube
+	kubectl create configmap init-sql --from-file=postgres/init.sql -n $(NAMESPACE)
 
 pv: check-kube
 	kubectl apply -f kubernetes/persistent-volumes/fastapi-persistent-volume.yml --validate=false

@@ -18,8 +18,6 @@ spec:
           image: antoinepela/projet_reco_movies:fastapi-latest
           imagePullPolicy: Always # Force Kubernetes à toujours tirer l'image
           env:
-            - name: POSTGRES_HOST
-              value: "postgres-api-service" # Nom du service PostgreSQL
             - name: POSTGRES_PORT
               value: "5432"
             - name: POSTGRES_DB

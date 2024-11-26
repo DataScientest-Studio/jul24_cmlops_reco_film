@@ -15,43 +15,42 @@ spec:
       labels:
         app: api-postgres
     spec:
-      initContainers:
-        - name: init-db
-          image: postgres:latest # Utilisez l'image officielle de PostgreSQL pour exécuter le script.
-          command:
-            [
-              "sh",
-              "-c",
-              "until pg_isready -h localhost -U antoine; do echo 'Waiting for PostgreSQL...'; sleep 2; done; psql -h localhost -U antoine -d reco_movies -f /init/init.sql",
-            ]
-          env:
-            - name: PGPASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: postgres-api-secrets # Assurez-vous que le mot de passe est récupéré du secret.
-                  key: POSTGRES_PASSWORD
-          volumeMounts:
-            - name: init-sql-volume
-              mountPath: /init # Montez le volume contenant init.sql ici.
       containers:
         - name: postgres-api
           image: postgres:16-alpine
-          envFrom:
-            - configMapRef:
-                name: postgres-api-config
-            - secretRef:
-                name: postgres-api-secrets
           ports:
-            - containerPort: 5432 # Port par défaut de Postgres.
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_PORT
+              value: "5432"
+            - name: POSTGRES_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: postgres-api-config
+                  key: POSTGRES_DB
+            - name: POSTGRES_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: postgres-api-config
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-api-secrets
+                  key: POSTGRES_PASSWORD
           volumeMounts:
             - name: pg-data
               mountPath: /var/lib/postgresql/data
-            - name: init-sql-volume
-              mountPath: /init # Montez également ici pour que le conteneur principal puisse y accéder.
+            - name: combined-volume
+              mountPath: /docker-entrypoint-initdb.d # Montez ici pour accéder à init.sql et aux fichiers CSV
       volumes:
+        - name: combined-volume
+          projected:
+            sources:
+              - configMap:
+                  name: init-sql
+              - persistentVolumeClaim:
+                  claimName: pvc-processed-raw
         - name: pg-data
           persistentVolumeClaim:
             claimName: postgres-api-volume
-        - name: init-sql-volume
-          persistentVolumeClaim:
-            claimName: pvc-init-sql
