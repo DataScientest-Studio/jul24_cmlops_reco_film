@@ -1,6 +1,7 @@
-NAMESPACE = reco-movies
+NAMESPACE1 = reco-movies
+NAMESPACE2 = airflow
 
-.PHONY: help setup1 setup2 start stop down restart logs-supabase logs-airflow logs-api clean network all namespace pv secrets configmaps deployments services ingress clean-kube create-configmap load-data-minikube
+.PHONY: help setup1 setup2 start stop down restart logs-supabase logs-airflow logs-api clean network all namespace pv secrets configmaps deployments services ingress clean-kube-reco clean-kube-airflow create-configmap load-data-minikube install-airflow pv-airflow
 
 # Help command to list all available targets
 help:
@@ -104,15 +105,36 @@ clean-db: network
 network:
 	docker network create backend || true
 
+
+
 ###### MAKEFILE KUBERNETES
-all:  namespace pv secrets configmaps deployments services ingress
+all: load-data-minikube namespace install-airflow pv-airflow pv secrets configmaps deployments services ingress
+
+# Installation de helm Airflow
+install-airflow:
+	helm repo add apache-airflow https://airflow.apache.org
+	helm repo update
+	helm -n airflow upgrade --install airflow apache-airflow/airflow -f kubernetes/airflow/my_values.yml
+
+delete-airflow-statefulsets:
+	kubectl delete statefulset -n airflow airflow-triggerer || true
+	kubectl delete statefulset -n airflow airflow-worker || true
+
+pv-airflow:
+	kubectl apply -f kubernetes/airflow/airflow-local-dags-folder-pv.yml -n airflow --validate=false
+	kubectl apply -f kubernetes/airflow/airflow-local-dags-folder-pvc.yml -n airflow  --validate=false
+	kubectl apply -f kubernetes/airflow/airflow-local-logs-folder-pv.yml -n airflow --validate=false
+	kubectl apply -f kubernetes/airflow/airflow-local-logs-folder-pvc.yml -n airflow --validate=false
 
 # Chargement des données dans minikube : https://minikube.sigs.k8s.io/docs/handbook/filesync/
 load-data-minikube:
 	mkdir -p ~/.minikube/files/processed_raw
+	mkdir -p ~/.minikube/files/dags
+	mkdir -p ~/.minikube/files/logs
 	cp -r ml/data/processed/* ~/.minikube/files/processed_raw
 	cp -r postgres/init.sql ~/.minikube/files/init.sql
 	cp -r prometheus/prometheus.yml ~/.minikube/files/prometheus.yml
+	cp -r airflow/dags/* ~/.minikube/files/dags
 	minikube start
 
 # Vérifie si kubectl est connecté à un cluster
@@ -122,8 +144,6 @@ check-kube:
 
 namespace: check-kube
 	kubectl apply -f kubernetes/namespace/namespace.yml --validate=false
-	kubectl config set-context --current --namespace=reco-movies
-
 
 pv: check-kube
 	kubectl apply -f kubernetes/persistent-volumes/fastapi-persistent-volume.yml --validate=false
@@ -148,7 +168,6 @@ deployments: check-kube
 	kubectl apply -f kubernetes/deployments/prometheus-deployment.yml --validate=false
 	kubectl apply -f kubernetes/deployments/grafana-deployment.yml --validate=false
 	kubectl apply -f kubernetes/deployments/node-exporter-deployment.yml --validate=false
-	kubectl apply -f kubernetes/deployments/airflow-deployment.yml --validate=false
 	kubectl apply -f kubernetes/deployments/minio-deployment.yml --validate=false
 	kubectl apply -f kubernetes/deployments/postgres-exporter-deployment.yml --validate=false
 	kubectl apply -f kubernetes/deployments/pgadmin-deployment.yml --validate=false
@@ -159,5 +178,8 @@ services: check-kube
 ingress: check-kube
 	kubectl apply -f kubernetes/ingress/ingress.yml
 
-clean-kube: check-kube
-	kubectl delete namespace $(NAMESPACE)
+clean-kube-reco: check-kube
+	kubectl delete namespace $(NAMESPACE1)
+
+clean-kube-airflow: check-kube
+	kubectl delete namespace $(NAMESPACE2)

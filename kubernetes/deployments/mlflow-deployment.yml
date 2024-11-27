@@ -1,4 +1,3 @@
-# Déploiement MLflow Webserver
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -23,9 +22,6 @@ spec:
           envFrom:
             - configMapRef:
                 name: postgres-mlflow-config
-            - secretKeyRef:
-                name: postgres-mlflow-secrets
-                key: POSTGRES_PASSWORD
           env:
             - name: MLFLOW_S3_ENDPOINT_URL
               value: http://minio-service:9000
@@ -39,3 +35,8 @@ spec:
                 secretKeyRef:
                   name: postgres-mlflow-secrets
                   key: AWS_SECRET_ACCESS_KEY
+            - name: POSTGRES_PASSWORD # Ajoutez cette ligne pour inclure le mot de passe PostgreSQL.
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-mlflow-secrets
+                  key: POSTGRES_PASSWORD

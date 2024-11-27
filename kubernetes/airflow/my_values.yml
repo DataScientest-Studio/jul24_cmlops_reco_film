@@ -1,0 +1,19 @@
+dags:
+  persistence:
+    enabled: true
+    existingClaim: airflow-local-dags-folder
+
+logs:
+  persistence:
+    enabled: true
+    existingClaim: airflow-local-logs-folder
+
+uid: 1000
+gid: 1000
+
+scheduler:
+  env:
+    - name: AIRFLOW__SCHEDULER__DAG_DIR_LIST_INTERVAL
+      value: "30"
+
+executor: CeleryKubernetesExecutor

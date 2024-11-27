@@ -2,3 +2,9 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: reco-movies
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: airflow
