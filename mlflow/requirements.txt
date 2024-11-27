@@ -1,0 +1,6 @@
+
+cryptography
+boto3
+mlflow==2.18.0
+pymysql
+psycopg2-binary

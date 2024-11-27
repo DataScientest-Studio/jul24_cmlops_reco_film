@@ -3,44 +3,57 @@
 services:
   studio:
     networks:
-      - backend
+      - supabase_default
   analytics:
     networks:
-      - backend
+      - supabase_default
   kong:
     networks:
+      - supabase_default
       - backend
   auth:
     networks:
-      - backend
+      - supabase_default
   rest:
     networks:
-      - backend
+      - supabase_default
   db:
     networks:
-      - backend
+      - supabase_default
   realtime:
     networks:
-      - backend
-  storage:
-    networks:
-      - backend
-  imgproxy:
-    networks:
-      - backend
+      - supabase_default
   meta:
     networks:
-      - backend
+      - supabase_default
   supavisor:
     networks:
-      - backend
+      - supabase_default
   functions:
     networks:
-      - backend
+      - supabase_default
   vector:
     networks:
-      - backend
+      - supabase_default
+
+  # Commun avec S3
+  storage:
+    networks:
+      - supabase_default
+  imgproxy:
+    networks:
+      - supabase_default
+  
+  # depuis S3
+  # minio:
+  #   networks:
+  #     - supabase_default
+  # minio-createbucket:
+  #   networks:
+  #     - supabase_default
 
 networks:
   backend:
     external: true
+  supabase_default:
+    driver: bridge

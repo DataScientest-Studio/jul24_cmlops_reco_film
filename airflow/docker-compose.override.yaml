@@ -3,26 +3,28 @@
 services:
   airflow-webserver:
     networks:
-      - backend
+      - airflow_default
   airflow-scheduler:
     networks:
-      - backend
+      - airflow_default
   airflow-worker:
     networks:
+      - airflow_default
       - backend
   airflow-triggerer:
     networks:
-      - backend
+      - airflow_default
   airflow-init:
     networks:
-      - backend
+      - airflow_default
   postgres:
     networks:
-      - backend
+      - airflow_default
   redis:
     networks:
-      - backend
-
+      - airflow_default
 networks:
+  airflow_default:
+    driver: bridge
   backend:
     external: true

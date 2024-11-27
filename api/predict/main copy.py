@@ -8,7 +8,8 @@ import dotenv
 import mlflow
 from mlflow.sklearn import load_model
 from prometheus_fastapi_instrumentator import Instrumentator
-from metrics import PREDICTION_REQUESTS, PREDICTION_LATENCY, MODEL_INFO, MODEL_RELOAD_COUNTER
+from metrics import PREDICTION_REQUESTS, PREDICTION_LATENCY, MODEL_INFO
+from prometheus_client import Counter, Histogram, Info
 import time
 
 dotenv.load_dotenv()
@@ -16,10 +17,6 @@ dotenv.load_dotenv()
 app = FastAPI()
 
 Instrumentator().instrument(app).expose(app)
-
-# Variables globales pour le modèle et les infos
-model = None
-model_infos = None
 
 
 def load_recommender_model():
@@ -41,23 +38,25 @@ def load_recommender_model():
 
         # Tenter de charger le modèle
         print("Tentative de chargement du modèle 'movie_recommender'")
-        client = mlflow.tracking.MlflowClient()
-        model_champion = client.get_model_version_by_alias(name="movie_recommender", alias="champion")
-        model_version = model_champion.version
-        model = mlflow.sklearn.load_model(f"models:/movie_recommender/{model_version}")
+        model = mlflow.sklearn.load_model("models:/movie_recommender/latest")
         print("Modèle chargé avec succès")
 
         MODEL_INFO.info({"model_name": "movie_recommender"})
 
         model_infos = {
+            "mlflow_uri": mlflow_uri,
             "model_name": "movie_recommender",
-            "model_version": model_version,
+            "model_version": "latest",
+            "runs": mlflow.search_runs(),
         }
 
         return model, model_infos
     except Exception as e:
         print(f"Erreur détaillée lors du chargement du modèle MLflow: {str(e)}")
         raise
+
+
+model, model_infos = load_recommender_model()
 
 
 def make_predictions(genres, model):
@@ -106,12 +105,6 @@ class UserInput(BaseModel):
     genres: str
 
 
-@app.on_event("startup")
-async def startup_event():
-    global model, model_infos
-    model, model_infos = load_recommender_model()
-
-
 @app.post("/recommend")
 def recommend(user_input: UserInput):
     PREDICTION_REQUESTS.inc()
@@ -125,17 +118,3 @@ def recommend(user_input: UserInput):
 @app.get("/model_info")
 def model_info():
     return model_infos
-
-
-@app.post("/reload_model")
-async def reload_model():
-    global model, model_infos
-    try:
-        model, model_infos = load_recommender_model()
-        MODEL_RELOAD_COUNTER.inc()
-        return {"status": "success", "message": "Modèle rechargé avec succès"}
-    except Exception as e:
-        return {
-            "status": "error",
-            "message": f"Erreur lors du rechargement du modèle: {str(e)}",
-        }

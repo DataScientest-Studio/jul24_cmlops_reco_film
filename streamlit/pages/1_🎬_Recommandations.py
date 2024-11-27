@@ -61,3 +61,16 @@ if user_matrix:
         st.error("Erreur lors de la récupération des recommandations.")
 else:
     st.warning("Veuillez sélectionner au moins un genre.")
+
+if st.button("Afficher les infos du modèle"):
+    model_info_url = "http://api_predict:8002/model_info"
+    model_info = requests.get(model_info_url)
+    st.write(f"Model info: {model_info.json()}")
+
+if st.button("Recharger le modèle"):
+    reload_model_url = "http://api_predict:8002/reload_model"
+    reload_model = requests.post(reload_model_url)
+    if reload_model.status_code == 200:
+        st.success("Modèle rechargé avec succès")
+    else:
+        st.error(f"Erreur lors du rechargement du modèle: {reload_model.json()}")

@@ -1,11 +1,3 @@
-FROM apache/airflow:2.10.2
-
-USER root
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
-
-USER airflow
-COPY requirements.txt /requirements.txt
-RUN pip install --no-cache-dir apache-airflow==${AIRFLOW_VERSION} -r /requirements.txt
+FROM apache/airflow:2.10.3
+ADD requirements.txt .
+RUN pip install apache-airflow==${AIRFLOW_VERSION} -r requirements.txt

@@ -1,23 +1,18 @@
 CREATE TABLE movies (
-    "movieId" INTEGER PRIMARY KEY,
+    "movieId" SERIAL PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
     genres VARCHAR(255),
     year INTEGER,
     "posterUrl" VARCHAR(255),
     rating FLOAT DEFAULT 0,
     "numRatings" INTEGER DEFAULT 0,
-    "lastRatingTimestamp" INTEGER
-);
-
-CREATE TABLE links (
-    "movieId" INTEGER PRIMARY KEY,
+    "lastRatingTimestamp" INTEGER,
     "imdbId" VARCHAR(10),
-    "tmdbId" VARCHAR(10),
-    FOREIGN KEY ("movieId") REFERENCES movies("movieId")
+    "tmdbId" VARCHAR(10)
 );
 
 CREATE TABLE users (
-    "userId" INTEGER PRIMARY KEY,
+    "userId" SERIAL PRIMARY KEY,
     "authId" VARCHAR(255),
     "(no genres listed)" FLOAT,
     "Action" FLOAT,
@@ -50,3 +45,20 @@ CREATE TABLE ratings (
     FOREIGN KEY ("movieId") REFERENCES movies("movieId"),
     FOREIGN KEY ("userId") REFERENCES users("userId")
 );
+
+-- Fonction utilitaire pour exécuter du SQL
+CREATE OR REPLACE FUNCTION exec_sql(query text)
+RETURNS void AS $$
+BEGIN
+  EXECUTE query;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Fonction pour réinitialiser les séquences
+CREATE OR REPLACE FUNCTION reset_all_sequences()
+RETURNS void AS $$
+BEGIN
+  PERFORM setval(pg_get_serial_sequence('movies', 'movieId'), (SELECT MAX("movieId") FROM movies));
+  PERFORM setval(pg_get_serial_sequence('users', 'userId'), (SELECT MAX("userId") FROM users));
+END;
+$$ LANGUAGE plpgsql;
