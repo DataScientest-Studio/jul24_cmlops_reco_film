@@ -1,6 +1,6 @@
 NAMESPACE = reco-movies
 
-.PHONY: help setup1 setup2 start stop down restart logs-supabase logs-airflow logs-api clean network all namespace pv secrets configmaps deployments services ingress clean-kube create-configmap
+.PHONY: help setup1 setup2 start stop down restart logs-supabase logs-airflow logs-api clean network all namespace pv secrets configmaps deployments services ingress clean-kube create-configmap load-data-minikube
 
 # Help command to list all available targets
 help:
@@ -105,17 +105,25 @@ network:
 	docker network create backend || true
 
 ###### MAKEFILE KUBERNETES
-all: namespace pv secrets configmaps create-configmap deployments services ingress
+all:  namespace pv secrets configmaps deployments services ingress
+
+# Chargement des données dans minikube : https://minikube.sigs.k8s.io/docs/handbook/filesync/
+load-data-minikube:
+	mkdir -p ~/.minikube/files/processed_raw
+	cp -r ml/data/processed/* ~/.minikube/files/processed_raw
+	cp -r postgres/init.sql ~/.minikube/files/init.sql
+	cp -r prometheus/prometheus.yml ~/.minikube/files/prometheus.yml
+	minikube start
 
 # Vérifie si kubectl est connecté à un cluster
 check-kube:
 	@kubectl cluster-info > /dev/null 2>&1 || { echo "kubectl n'est pas connecté à un cluster"; exit 1; }
 
+
 namespace: check-kube
 	kubectl apply -f kubernetes/namespace/namespace.yml --validate=false
+	kubectl config set-context --current --namespace=reco-movies
 
-create-configmap: check-kube
-	kubectl create configmap init-sql --from-file=postgres/init.sql -n $(NAMESPACE)
 
 pv: check-kube
 	kubectl apply -f kubernetes/persistent-volumes/fastapi-persistent-volume.yml --validate=false

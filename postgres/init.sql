@@ -1,4 +1,5 @@
 
+
 CREATE TABLE IF NOT EXISTS movies (
     movieId SERIAL PRIMARY KEY,
     title VARCHAR(200) NOT NULL,

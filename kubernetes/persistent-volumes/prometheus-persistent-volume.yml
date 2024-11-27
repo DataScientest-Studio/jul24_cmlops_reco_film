@@ -1,29 +1,3 @@
-# pv-prometheus-config.yaml
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: pv-prometheus-config
-spec:
-  capacity:
-    storage: 1Gi # Ajustez la taille selon vos besoins.
-  accessModes:
-    - ReadWriteOnce
-  hostPath:
-    path: /home/antoine/jul24_cmlops_reco_film/prometheus/prometheus.yml
----
-# pvc-prometheus-config.yaml
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: pvc-prometheus-config
-  namespace: reco-movies
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 1Gi
----
 # Persistent Volume Claims
 apiVersion: v1
 kind: PersistentVolumeClaim

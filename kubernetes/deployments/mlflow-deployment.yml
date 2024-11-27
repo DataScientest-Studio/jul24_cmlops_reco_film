@@ -19,8 +19,23 @@ spec:
           image: antoinepela/projet_reco_movies:mlflow-webserver-latest
           ports:
             - containerPort: 5000
+          args: ["mlflow", "server", "--host", "0.0.0.0"]
           envFrom:
             - configMapRef:
-                name: posgres-mlfow-config
-            - secretRef:
+                name: postgres-mlflow-config
+            - secretKeyRef:
                 name: postgres-mlflow-secrets
+                key: POSTGRES_PASSWORD
+          env:
+            - name: MLFLOW_S3_ENDPOINT_URL
+              value: http://minio-service:9000
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-mlflow-secrets
+                  key: AWS_ACCESS_KEY_ID
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-mlflow-secrets
+                  key: AWS_SECRET_ACCESS_KEY

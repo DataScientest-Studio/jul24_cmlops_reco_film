@@ -24,7 +24,7 @@ spec:
               value: "mlflow_access"
             - name: MINIO_ROOT_PASSWORD
               value: "mlflow_secret"
-          command: ["server", "/data", "--console-address", ":9001"] # Commande pour démarrer MinIO.
+          command: ["minio", "server", "/data", "--console-address", ":9001"] # Commande pour démarrer MinIO.
           volumeMounts:
             - name: minio-data-volume
               mountPath: /data # Chemin où les données seront stockées.

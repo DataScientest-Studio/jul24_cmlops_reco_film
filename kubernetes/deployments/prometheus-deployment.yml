@@ -23,14 +23,14 @@ spec:
             - configMapRef:
                 name: prometheus-config
           volumeMounts:
-            - name: prometheus-config-volume
-              mountPath: /etc/prometheus/prometheus.yml # Chemin où le fichier de configuration sera monté.
+            - name: prometheus-yml
+              mountPath: /etc/prometheus/prometheus.yml
             - name: prometheus-logs
               mountPath: /var/log/prometheus # Répertoire pour les logs.
       volumes:
-        - name: prometheus-config-volume
-          persistentVolumeClaim:
-            claimName: pvc-prometheus-config # Référence au PVC pour le fichier de configuration.
+        - name: prometheus-yml
+          hostPath:
+            path: /prometheus.yml
         - name: prometheus-logs
           persistentVolumeClaim:
             claimName: prometheus-logs

@@ -11,6 +11,7 @@ spec:
     app: mlflow
   ports:
     - port: 5000
+      targetPort: 5000
   type: ClusterIP
 
 ---
@@ -25,6 +26,7 @@ spec:
     app: fastapi
   ports:
     - port: 8000
+      targetPort: 8000
   type: LoadBalancer
 ---
 ## Service Streamlit (LoadBalancer)
@@ -79,6 +81,25 @@ spec:
   ports:
     - port: 5432
       targetPort: 5432
+  type: ClusterIP
+
+---
+## Service MinIO (ClusterIP)
+apiVersion: v1
+kind: Service
+metadata:
+  name: minio-service
+  namespace: reco-movies
+spec:
+  selector:
+    app: s3-artifact-storage
+  ports:
+    - name: minio
+      port: 9000
+      targetPort: 9000
+    - name: console
+      port: 9001
+      targetPort: 9001
   type: ClusterIP
 
 ---

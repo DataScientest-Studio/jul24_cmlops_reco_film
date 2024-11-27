@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: postgres-api
-          image: postgres:16-alpine
+          image: antoinepela/projet_reco_movies:postgres-api-latest
           ports:
             - containerPort: 5432
           env:
@@ -41,16 +41,32 @@ spec:
           volumeMounts:
             - name: pg-data
               mountPath: /var/lib/postgresql/data
-            - name: combined-volume
-              mountPath: /docker-entrypoint-initdb.d # Montez ici pour accéder à init.sql et aux fichiers CSV
+            - name: init-sql
+              mountPath: /docker-entrypoint-initdb.d/init.sql
+            - name: processed-movies-volume
+              mountPath: /docker-entrypoint-initdb.d/processed_movies.csv
+            - name: processed-ratings-volume
+              mountPath: /docker-entrypoint-initdb.d/processed_ratings.csv
+            - name: processed-links-volume
+              mountPath: /docker-entrypoint-initdb.d/processed_links.csv
+            - name: users-volume
+              mountPath: /docker-entrypoint-initdb.d/users.csv
       volumes:
-        - name: combined-volume
-          projected:
-            sources:
-              - configMap:
-                  name: init-sql
-              - persistentVolumeClaim:
-                  claimName: pvc-processed-raw
+        - name: init-sql
+          hostPath:
+            path: /init.sql
+        - name: processed-movies-volume
+          hostPath:
+            path: /processed_raw/processed_movies.csv
+        - name: processed-ratings-volume
+          hostPath:
+            path: /processed_raw/processed_ratings.csv # Chemin sur l'hôte.
+        - name: processed-links-volume
+          hostPath:
+            path: /processed_raw/processed_links.csv # Chemin sur l'hôte.
+        - name: users-volume
+          hostPath:
+            path: /processed_raw/users.csv # Chemin sur l'hôte.
         - name: pg-data
           persistentVolumeClaim:
-            claimName: postgres-api-volume
+            claimName: pvc-postgres-api-volume
