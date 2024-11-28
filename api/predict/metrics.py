@@ -1,5 +1,4 @@
-from prometheus_client import Counter, Histogram, Info
-import time
+from prometheus_client import Counter, Histogram, Info, Gauge
 
 # Compteur pour le nombre total de prédictions
 PREDICTION_REQUESTS = Counter(
@@ -20,4 +19,16 @@ MODEL_INFO = Info('model_info', 'Informations sur le modèle de prédiction')
 # Ajout du compteur pour les rechargements de modèle
 MODEL_RELOAD_COUNTER = Counter(
     "model_reload_total", "Nombre total de rechargements du modèle"
+)
+
+# Nouvelles métriques
+API_REQUESTS_TOTAL = Counter(
+    'api_requests_total',
+    'Nombre total de requêtes à l\'API',
+    ['method', 'endpoint', 'status_code']
+)
+
+ACTIVE_REQUESTS = Gauge(
+    'active_requests',
+    'Nombre de requêtes actuellement en cours de traitement'
 )

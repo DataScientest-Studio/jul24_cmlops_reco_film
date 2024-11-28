@@ -17,8 +17,6 @@ help:
 	@echo "  network        - Create the Docker network 'backend'"
 
 # Setup: Setup environment, load initial data and set env files based on .env.example	
-# TODO: gérer le fait que l'on ait pas les posterUrl a ce stade pour le build des features 
-# TODO: -> MAJ : j'ai ajouté le fichier sur google drive avec un lien public et modifié import_raw_data.py. ça marche chez moi. à tester ailleurs.
 setup1:
 	@echo "###### SETUP ENV #########"
 	python3 -m venv .venv
@@ -57,6 +55,8 @@ start: network
 	@echo "streamlit: http://localhost:8501"
 	@echo "mlflow: http://localhost:5001"
 	@echo "minio: http://localhost:9001"
+	@echo "prometheus: http://localhost:9090"
+	@echo "grafana: http://localhost:3000"
 
 # Stop: stop all services
 stop:

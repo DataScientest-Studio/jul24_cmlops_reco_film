@@ -5,9 +5,6 @@ import os
 
 def read_ratings(ratings_csv, data_dir="ml/data/raw") -> pd.DataFrame:
     data = pd.read_csv(os.path.join(data_dir, ratings_csv))
-    # TODO: vérifier si ça marche sans ça. MAJ : ça a l'air de marcher sans, le model fait de meilleurs predictions
-    # temp = pd.DataFrame(LabelEncoder().fit_transform(data["movieId"]))
-    # data["movieId"] = temp
     return data
 
 

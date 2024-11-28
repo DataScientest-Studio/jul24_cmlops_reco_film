@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from pydantic import BaseModel
 import numpy as np
 import pandas as pd
@@ -6,15 +6,17 @@ import os
 import pickle
 import dotenv
 import mlflow
-from prometheus_fastapi_instrumentator import Instrumentator
-from metrics import PREDICTION_REQUESTS, PREDICTION_LATENCY, MODEL_INFO, MODEL_RELOAD_COUNTER
+from metrics import PREDICTION_REQUESTS, PREDICTION_LATENCY, MODEL_INFO, MODEL_RELOAD_COUNTER, API_REQUESTS_TOTAL, ACTIVE_REQUESTS
 import time
+from prometheus_client import make_asgi_app
 
 dotenv.load_dotenv()
 
 app = FastAPI()
 
-Instrumentator().instrument(app).expose(app)
+# Créer une endpoint Prometheus séparée
+metrics_app = make_asgi_app()
+app.mount("/metrics", metrics_app)
 
 # Variables globales pour le modèle et les infos
 model = None
@@ -160,3 +162,20 @@ async def reload_model():
             "status": "error",
             "message": f"Erreur lors du rechargement du modèle: {str(e)}",
         }
+
+
+@app.middleware("http")
+async def track_requests(request: Request, call_next):
+    ACTIVE_REQUESTS.inc()
+    start_time = time.time()
+    
+    response = await call_next(request)
+    
+    ACTIVE_REQUESTS.dec()
+    API_REQUESTS_TOTAL.labels(
+        method=request.method,
+        endpoint=request.url.path,
+        status_code=response.status_code
+    ).inc()
+    
+    return response
