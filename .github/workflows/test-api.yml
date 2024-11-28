@@ -33,7 +33,7 @@ jobs:
 
       - name: Wait for API to be ready
         run: |
-          timeout 30s bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' localhost:8002/model_info)" != "200" ]]; do sleep 1; done' || false
+          timeout 120s bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' localhost:8002/model_info)" != "200" ]]; do sleep 1; done' || false
 
       - name: Run API tests
         run: |
