@@ -40,25 +40,7 @@ jobs:
 
       - name: Wait for API to be ready
         run: |
-          echo "🔄 Début de la vérification de l'API..."
-          attempt=1
-          timeout 120s bash -c '
-            while true; do
-              echo "⏳ Tentative $attempt de connexion à l'API..."
-              response=$(curl -s -w "\nCode HTTP: %{http_code}\nTemps total: %{time_total}s\n" localhost:8002/model_info)
-              http_code=$(echo "$response" | grep "Code HTTP:" | cut -d" " -f3)
-              
-              if [[ "$http_code" == "200" ]]; then
-                echo "✅ API prête ! Code de réponse: 200"
-                exit 0
-              else
-                echo "❌ API pas encore prête. Code de réponse: $http_code"
-                echo "⏰ Attente de 1 seconde avant la prochaine tentative..."
-                attempt=$((attempt+1))
-                sleep 1
-              fi
-            done
-          ' || (echo "⚠️ Timeout après 120 secondes - L'API n'a pas démarré" && false)
+          timeout 240s bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' localhost:8002/model_info)" != "200" ]]; do sleep 1; done' || false
 
       - name: Run API tests
         run: |
