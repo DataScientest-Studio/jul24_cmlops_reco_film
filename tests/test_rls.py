@@ -10,7 +10,7 @@ SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_ANON_KEY = os.getenv("SUPABASE_KEY")
 
 user1_email = "user1@example.com"
-user2_email = "user2@example.com"
+user2_email = "user14@example.com"
 password = "azeqsd123"
 
 
