@@ -6,7 +6,14 @@ import os
 import pickle
 import dotenv
 import mlflow
-from metrics import PREDICTION_REQUESTS, PREDICTION_LATENCY, MODEL_INFO, MODEL_RELOAD_COUNTER, API_REQUESTS_TOTAL, ACTIVE_REQUESTS
+from metrics import (
+    PREDICTION_REQUESTS,
+    PREDICTION_LATENCY,
+    MODEL_INFO,
+    MODEL_RELOAD_COUNTER,
+    API_REQUESTS_TOTAL,
+    ACTIVE_REQUESTS,
+)
 import time
 from prometheus_client import make_asgi_app
 
@@ -43,7 +50,9 @@ def load_recommender_model():
         # Tenter de charger le modèle
         print("Tentative de chargement du modèle 'movie_recommender'")
         client = mlflow.tracking.MlflowClient()
-        model_champion = client.get_model_version_by_alias(name="movie_recommender", alias="champion")
+        model_champion = client.get_model_version_by_alias(
+            name="movie_recommender", alias="champion"
+        )
         model_version = model_champion.version
         model = mlflow.sklearn.load_model(f"models:/movie_recommender/{model_version}")
         print("Modèle chargé avec succès depuis MLflow")
@@ -53,7 +62,7 @@ def load_recommender_model():
         model_infos = {
             "model_name": "movie_recommender",
             "model_version": model_version,
-            "source": "mlflow"
+            "source": "mlflow",
         }
 
         return model, model_infos
@@ -61,10 +70,10 @@ def load_recommender_model():
     except Exception as e:
         print(f"Erreur lors du chargement du modèle MLflow: {str(e)}")
         print("Tentative de chargement du modèle local de secours")
-        
+
         try:
             # Charger le modèle local
-            with open('./app/model.pkl', 'rb') as f:
+            with open("model.pkl", "rb") as f:
                 model = pickle.load(f)
             print("Modèle local chargé avec succès")
 
@@ -73,7 +82,7 @@ def load_recommender_model():
             model_infos = {
                 "model_name": "movie_recommender",
                 "model_version": "local",
-                "source": "local"
+                "source": "local",
             }
 
             return model, model_infos
@@ -168,14 +177,14 @@ async def reload_model():
 async def track_requests(request: Request, call_next):
     ACTIVE_REQUESTS.inc()
     start_time = time.time()
-    
+
     response = await call_next(request)
-    
+
     ACTIVE_REQUESTS.dec()
     API_REQUESTS_TOTAL.labels(
         method=request.method,
         endpoint=request.url.path,
-        status_code=response.status_code
+        status_code=response.status_code,
     ).inc()
-    
+
     return response
