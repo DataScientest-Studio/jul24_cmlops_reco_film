@@ -38,6 +38,8 @@ spec:
                 secretKeyRef:
                   name: postgres-api-secrets
                   key: POSTGRES_PASSWORD
+            - name: POSTGRES_HOST
+              value: "postgres-api-service"
           volumeMounts:
             - name: pg-data
               mountPath: /var/lib/postgresql/data
@@ -54,19 +56,19 @@ spec:
       volumes:
         - name: init-sql
           hostPath:
-            path: /init.sql
+            path: /home/antoine/jul24_cmlops_reco_film/postgres/init.sql
         - name: processed-movies-volume
           hostPath:
-            path: /processed_raw/processed_movies.csv
+            path: /home/antoine/jul24_cmlops_reco_film/ml/data/processed/processed_movies.csv
         - name: processed-ratings-volume
           hostPath:
-            path: /processed_raw/processed_ratings.csv # Chemin sur l'hôte.
+            path: /home/antoine/jul24_cmlops_reco_film/ml/data/processed/processed_ratings.csv
         - name: processed-links-volume
           hostPath:
-            path: /processed_raw/processed_links.csv # Chemin sur l'hôte.
+            path: /home/antoine/jul24_cmlops_reco_film/ml/data/processed/processed_links.csv
         - name: users-volume
           hostPath:
-            path: /processed_raw/users.csv # Chemin sur l'hôte.
+            path: /home/antoine/jul24_cmlops_reco_film/ml/data/processed/users.csv
         - name: pg-data
           persistentVolumeClaim:
             claimName: pvc-postgres-api-volume

@@ -2,7 +2,7 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: airflow-logs-folder
+  name: airflow-local-logs-folder
   namespace: airflow
 spec:
   accessModes:

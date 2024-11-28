@@ -15,7 +15,7 @@ spec:
   type: ClusterIP
 
 ---
-## Service FastAPI (LoadBalancer)
+## Service FastAPI (NodePort)
 apiVersion: v1
 kind: Service
 metadata:
@@ -27,9 +27,10 @@ spec:
   ports:
     - port: 8000
       targetPort: 8000
-  type: LoadBalancer
+      nodePort: 30001
+  type: NodePort
 ---
-## Service Streamlit (LoadBalancer)
+## Service Streamlit (NodePort)
 apiVersion: v1
 kind: Service
 metadata:
@@ -40,9 +41,11 @@ spec:
     app: streamlit
   ports:
     - port: 8501
-  type: LoadBalancer
+      targetPort: 8501
+      nodePort: 30002
+  type: NodePort
 ---
-## Service Prometheus (ClusterIP)
+## Service Prometheus (NodePort)
 apiVersion: v1
 kind: Service
 metadata:
@@ -53,9 +56,11 @@ spec:
     app: prometheus
   ports:
     - port: 9090
-  type: ClusterIP
+      targetPort: 9090
+      nodePort: 30003
+  type: NodePort
 ---
-## Service Grafana (LoadBalancer)
+## Service Grafana (NodePort)
 apiVersion: v1
 kind: Service
 metadata:
@@ -66,7 +71,9 @@ spec:
     app: grafana
   ports:
     - port: 3000
-  type: LoadBalancer
+      targetPort: 3000
+      nodePort: 30004
+  type: NodePort
 
 ---
 ## Service Postgres-API (ClusterIP)
@@ -84,7 +91,7 @@ spec:
   type: ClusterIP
 
 ---
-## Service MinIO (ClusterIP)
+## Service MinIO (NodePort)
 apiVersion: v1
 kind: Service
 metadata:
@@ -97,10 +104,12 @@ spec:
     - name: minio
       port: 9000
       targetPort: 9000
+      nodePort: 30005
     - name: console
       port: 9001
       targetPort: 9001
-  type: ClusterIP
+      nodePort: 30006
+  type: NodePort
 
 ---
 apiVersion: v1
@@ -115,4 +124,21 @@ spec:
     - protocol: TCP
       port: 80
       targetPort: 80
-  type: ClusterIP
+      nodePort: 30007
+  type: NodePort
+
+---
+## Service Airflow Webserver (NodePort)
+apiVersion: v1
+kind: Service
+metadata:
+  name: airflow-webserver-service
+  namespace: airflow
+spec:
+  selector:
+    app: airflow-webserver
+  ports:
+    - port: 8080
+      targetPort: 8080
+      nodePort: 30008
+  type: NodePort

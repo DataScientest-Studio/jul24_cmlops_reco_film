@@ -1,7 +1,7 @@
 NAMESPACE1 = reco-movies
 NAMESPACE2 = airflow
 
-.PHONY: help setup1 setup2 start stop down restart logs-supabase logs-airflow logs-api clean network all namespace pv secrets configmaps deployments services ingress clean-kube-reco clean-kube-airflow create-configmap load-data-minikube install-airflow pv-airflow
+.PHONY: help setup1 setup2 start stop down restart logs-supabase logs-airflow logs-api logs-fastapi clean network all namespace pv secrets configmaps deployments services ingress clean-kube-reco clean-kube-airflow create-configmap load-data-minikube install-airflow pv-airflow airflow reco
 
 # Help command to list all available targets
 help:
@@ -15,6 +15,7 @@ help:
 	@echo "  logs-supabase  - Show logs for supabase"
 	@echo "  logs-airflow   - Show logs for airflow"
 	@echo "  logs-api       - Show logs for api"
+	@echo "  logs-fastapi   - Show logs for FastAPI"
 	@echo "  clean          - Remove all containers and networks"
 	@echo "  clean-db       - Delete all data in the database and reload the schema and data"
 	@echo "  network        - Create the Docker network 'backend'"
@@ -84,6 +85,9 @@ logs-airflow:
 logs-api:
 	docker compose logs -f
 
+logs-fastapi:
+	docker compose logs -f fastapi
+
 # Clean: stop and remove all containers, networks, and volumes for all services
 clean:
 	cd supabase/docker && docker compose down -v
@@ -112,6 +116,10 @@ all: load-data-minikube namespace install-airflow pv-airflow pv secrets configma
 
 # Installation de helm Airflow
 install-airflow:
+	sudo apt-get update
+	curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+	chmod 700 get_helm.sh
+	./get_helm.sh
 	helm repo add apache-airflow https://airflow.apache.org
 	helm repo update
 	helm -n airflow upgrade --install airflow apache-airflow/airflow -f kubernetes/airflow/my_values.yml
@@ -125,6 +133,9 @@ pv-airflow:
 	kubectl apply -f kubernetes/airflow/airflow-local-dags-folder-pvc.yml -n airflow  --validate=false
 	kubectl apply -f kubernetes/airflow/airflow-local-logs-folder-pv.yml -n airflow --validate=false
 	kubectl apply -f kubernetes/airflow/airflow-local-logs-folder-pvc.yml -n airflow --validate=false
+
+airflow: namespace pv-airflow
+	helm -n airflow upgrade --install airflow apache-airflow/airflow -f kubernetes/airflow/my_values.yml
 
 # Chargement des données dans minikube : https://minikube.sigs.k8s.io/docs/handbook/filesync/
 load-data-minikube:
@@ -140,6 +151,8 @@ load-data-minikube:
 # Vérifie si kubectl est connecté à un cluster
 check-kube:
 	@kubectl cluster-info > /dev/null 2>&1 || { echo "kubectl n'est pas connecté à un cluster"; exit 1; }
+
+reco: namespace pv secrets configmaps deployments services ingress
 
 
 namespace: check-kube

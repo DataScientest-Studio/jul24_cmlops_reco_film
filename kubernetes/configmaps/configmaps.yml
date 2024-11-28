@@ -22,6 +22,7 @@ metadata:
 data:
   POSTGRES_DB: "postgres-api-service"
   POSTGRES_USER: "antoine"
+  POSTGRES_HOST: "postgres-api-service"
 
 ---
 # ConfigMap pour Prometheus (Configuration)
@@ -49,3 +50,7 @@ metadata:
 data:
   MODEL_PATH: "/app/model/model.pkl"
   DATA_PATH: "/app/raw/movies.csv"
+  POSTGRES_HOST: "postgres-api-service"
+  POSTGRES_PORT: "5432"
+  POSTGRES_DB: "postgres-api-service"
+  POSTGRES_USER: "antoine"

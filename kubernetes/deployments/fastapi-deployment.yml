@@ -35,6 +35,10 @@ spec:
                 secretKeyRef:
                   name: postgres-api-secrets
                   key: POSTGRES_PASSWORD
+            - name: POSTGRES_HOST
+              value: "postgres-api-service"
+            - name: UVICORN_RELOAD
+              value: "false"
           ports:
             - containerPort: 8000
           volumeMounts:
