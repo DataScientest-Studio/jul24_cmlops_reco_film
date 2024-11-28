@@ -16,22 +16,6 @@ services:
     networks:
       - backend
 
-# TODO nettoyer
-  # api_data:
-  #   build:
-  #     context: .
-  #     dockerfile: api/data/Dockerfile
-  #   container_name: api_data
-  #   ports:
-  #     - "8001:8000"
-  #   volumes:
-  #     - ./api/data:/app/data # TODO remove for production
-  #   environment:
-  #     SUPABASE_URL: http://kong:8000
-  #     SUPABASE_KEY: ${SUPABASE_KEY}
-  #   networks:
-  #     - backend
-
   streamlit:
     build:
       context: streamlit

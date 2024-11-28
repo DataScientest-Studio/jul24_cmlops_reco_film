@@ -3,11 +3,9 @@ from airflow.operators.python import PythonOperator
 from datetime import datetime, timedelta
 import pandas as pd
 from sklearn.neighbors import NearestNeighbors
-import pickle
 from supabase import create_client
 import os
 import mlflow
-from mlflow.sklearn import log_model
 import numpy as np
 import dotenv
 import time
@@ -115,7 +113,7 @@ def train_model_task(**context):
             mlflow.log_metric("std_neighbor_distance", std_distance)
 
             # Log du modèle directement dans MLflow/MinIO
-            log_model(
+            mlflow.sklearn.log_model(
                 sk_model=nbrs,
                 artifact_path="model",
                 registered_model_name="movie_recommender",
@@ -140,24 +138,26 @@ def train_model_task(**context):
 
 
 def challenging_champion_task(**context):
-
     setup_mlflow()
 
-    # récupérer le run_id du run en cours
     run_id = context["task_instance"].xcom_pull(
         key="mlflow_run_id", task_ids="train_model"
     )
 
-    print(f"Run ID : {run_id}")
-
     client = mlflow.tracking.MlflowClient()
+
+    # Correction de la vérification de connexion
+    try:
+        mlflow.search_runs().empty  # Vérifie si le DataFrame est vide
+        print("Connexion à MLflow réussie")
+    except Exception as e:
+        raise Exception(f"Connexion à MLflow échouée: {str(e)}")
 
     filter_string = f"run_id='{run_id}'"
     print(f"Filter string : {filter_string}")
 
-    # Ajouter une boucle de tentatives avec timeout
     max_attempts = 5
-    wait_time = 10  # secondes entre chaque tentative
+    wait_time = 10 
 
     for attempt in range(max_attempts):
         print(f"Tentative {attempt + 1}/{max_attempts} de récupération du modèle")
@@ -182,23 +182,32 @@ def challenging_champion_task(**context):
     champion = client.get_model_version_by_alias(
         name="movie_recommender", alias="champion"
     )
-    champion_rmse = mlflow.get_run(run_id=champion.run_id).data.metrics.get(
-        "average_neighbor_distance"
-    )
 
-    if challenger_rmse <= champion_rmse:
+    if champion:
+        champion_rmse = mlflow.get_run(run_id=champion.run_id).data.metrics.get(
+            "average_neighbor_distance"
+        )
+
+        if challenger_rmse <= champion_rmse:
+            client.set_registered_model_alias(
+                name="movie_recommender", alias="champion", version=challenger.version
+            )
+            print(
+                f"Le challenger {challenger.version} est meilleur que le champion {champion.version}. Nous avons un nouveau champion!"
+            )
+        else:
+            print(
+                f"Le challenger {challenger.version} est moins performant que le champion {champion.version}. Le champion reste champion."
+            )
+        print(f"Average neighbor distance champion : {champion_rmse}")
+        print(f"Average neighbor distance challenger : {challenger_rmse}")
+    else:
+        print("Aucun champion trouvé - Premier modèle enregistré")
+        # S'il n'y a pas de champion, le challenger devient automatiquement le champion
         client.set_registered_model_alias(
             name="movie_recommender", alias="champion", version=challenger.version
         )
-        print(
-            f"Le challenger {challenger.version} est meilleur que le champion {champion.version}. Nous avons un nouveau champion!"
-        )
-    else:
-        print(
-            f"Le challenger {challenger.version} est moins performant que le champion {champion.version}. Le champion reste champion."
-        )
-    print(f"RMSE champion : {champion_rmse}")
-    print(f"RMSE challenger : {challenger_rmse}")
+        print(f"Modèle {challenger.version} défini comme champion initial")
 
 
 def api_predict_reload_model_task(**context):

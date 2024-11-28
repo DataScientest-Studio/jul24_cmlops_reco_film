@@ -6,7 +6,6 @@ import os
 import pickle
 import dotenv
 import mlflow
-from mlflow.sklearn import load_model
 from prometheus_fastapi_instrumentator import Instrumentator
 from metrics import PREDICTION_REQUESTS, PREDICTION_LATENCY, MODEL_INFO, MODEL_RELOAD_COUNTER
 import time
@@ -45,19 +44,41 @@ def load_recommender_model():
         model_champion = client.get_model_version_by_alias(name="movie_recommender", alias="champion")
         model_version = model_champion.version
         model = mlflow.sklearn.load_model(f"models:/movie_recommender/{model_version}")
-        print("Modèle chargé avec succès")
+        print("Modèle chargé avec succès depuis MLflow")
 
-        MODEL_INFO.info({"model_name": "movie_recommender"})
+        MODEL_INFO.info({"model_name": "movie_recommender", "source": "mlflow"})
 
         model_infos = {
             "model_name": "movie_recommender",
             "model_version": model_version,
+            "source": "mlflow"
         }
 
         return model, model_infos
+
     except Exception as e:
-        print(f"Erreur détaillée lors du chargement du modèle MLflow: {str(e)}")
-        raise
+        print(f"Erreur lors du chargement du modèle MLflow: {str(e)}")
+        print("Tentative de chargement du modèle local de secours")
+        
+        try:
+            # Charger le modèle local
+            with open('./app/model.pkl', 'rb') as f:
+                model = pickle.load(f)
+            print("Modèle local chargé avec succès")
+
+            MODEL_INFO.info({"model_name": "movie_recommender", "source": "local"})
+
+            model_infos = {
+                "model_name": "movie_recommender",
+                "model_version": "local",
+                "source": "local"
+            }
+
+            return model, model_infos
+
+        except Exception as e:
+            print(f"Erreur lors du chargement du modèle local: {str(e)}")
+            raise
 
 
 def make_predictions(genres, model):
