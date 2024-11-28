@@ -31,6 +31,13 @@ jobs:
           docker compose build api_predict
           docker compose up -d api_predict
 
+      - name: Check container content
+        run: |
+          echo "Contenu du dossier /app:"
+          docker exec api_predict ls -la /app
+          echo "Contenu du dossier /app/predict:"
+          docker exec api_predict ls -la /app/predict
+
       - name: Wait for API to be ready
         run: |
           timeout 120s bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' localhost:8002/model_info)" != "200" ]]; do sleep 1; done' || false
