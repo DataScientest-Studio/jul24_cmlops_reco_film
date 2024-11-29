@@ -188,3 +188,8 @@ async def track_requests(request: Request, call_next):
     ).inc()
 
     return response
+
+
+@app.get("/health")
+def health_check():
+    return {"status": "ok"}
