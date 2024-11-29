@@ -157,7 +157,7 @@ def challenging_champion_task(**context):
     print(f"Filter string : {filter_string}")
 
     max_attempts = 5
-    wait_time = 10 
+    wait_time = 10
 
     for attempt in range(max_attempts):
         print(f"Tentative {attempt + 1}/{max_attempts} de récupération du modèle")
@@ -212,7 +212,7 @@ def challenging_champion_task(**context):
 
 def api_predict_reload_model_task(**context):
 
-    reload_model_url = "http://api-predict:8002/reload_model"
+    reload_model_url = "http://api-predict:8000/reload_model"
     reload_model = requests.post(reload_model_url)
     if reload_model.status_code == 200:
         print("Modèle rechargé avec succès")

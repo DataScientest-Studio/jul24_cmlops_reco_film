@@ -41,7 +41,7 @@ user_matrix = ",".join(str(user_info[genre]) for genre in genres)
 st.title("Recommandations de Films basées sur votre Historique")
 
 if user_matrix:
-    api_url = "http://api-predict:8002/recommend"
+    api_url = "http://api-predict:8000/recommend"
     user_input = {"genres": user_matrix}
 
     response = requests.post(api_url, json=user_input)
@@ -63,14 +63,14 @@ else:
     st.warning("Veuillez sélectionner au moins un genre.")
 
 if st.button("Afficher les infos du modèle"):
-    model_info_url = "http://api-predict:8002/model_info"
+    model_info_url = "http://api-predict:8000/model_info"
     model_info = requests.get(model_info_url)
     st.write(f"Model info: {model_info.json()}")
 
-if st.button("Recharger le modèle"):
-    reload_model_url = "http://api-predict:8002/reload_model"
-    reload_model = requests.post(reload_model_url)
-    if reload_model.status_code == 200:
-        st.success("Modèle rechargé avec succès")
-    else:
-        st.error(f"Erreur lors du rechargement du modèle: {reload_model.json()}")
+# if st.button("Recharger le modèle"):
+#     reload_model_url = "http://api-predict:8000/reload_model"
+#     reload_model = requests.post(reload_model_url)
+#     if reload_model.status_code == 200:
+#         st.success("Modèle rechargé avec succès")
+#     else:
+#         st.error(f"Erreur lors du rechargement du modèle: {reload_model.json()}")
