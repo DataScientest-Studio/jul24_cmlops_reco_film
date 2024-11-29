@@ -210,9 +210,9 @@ def challenging_champion_task(**context):
         print(f"Modèle {challenger.version} défini comme champion initial")
 
 
-def api_predict_reload_model_task(**context):
+def api-predict_reload_model_task(**context):
 
-    reload_model_url = "http://api_predict:8002/reload_model"
+    reload_model_url = "http://api-predict:8002/reload_model"
     reload_model = requests.post(reload_model_url)
     if reload_model.status_code == 200:
         print("Modèle rechargé avec succès")
@@ -257,7 +257,7 @@ with DAG(
 
     reload_model = PythonOperator(
         task_id="reload_model",
-        python_callable=api_predict_reload_model_task,
+        python_callable=api-predict_reload_model_task,
         trigger_rule="all_success",
     )
 

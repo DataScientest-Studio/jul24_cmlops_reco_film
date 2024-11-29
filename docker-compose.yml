@@ -1,9 +1,9 @@
 services:
-  api_predict:
+  api-predict:
     build:
       context: .
       dockerfile: api/predict/Dockerfile
-    container_name: api_predict
+    container_name: api-predict
     depends_on:
       - tracking_server
       - s3

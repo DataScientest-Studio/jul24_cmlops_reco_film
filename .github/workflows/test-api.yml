@@ -28,15 +28,15 @@ jobs:
 
       - name: Build and start API container
         run: |
-          docker compose build api_predict
-          docker compose up -d api_predict
+          docker compose build api-predict
+          docker compose up -d api-predict
 
       - name: Check container content
         run: |
           echo "Contenu du dossier /app:"
-          docker exec api_predict ls -la /app
+          docker exec api-predict ls -la /app
           echo "Contenu du dossier /app/predict:"
-          docker exec api_predict ls -la /app/predict
+          docker exec api-predict ls -la /app/predict
 
       - name: Wait for API to be ready
         run: |
@@ -44,11 +44,11 @@ jobs:
 
       - name: Run API tests
         run: |
-          pytest tests/test_api_predict.py -v
+          pytest tests/test_api-predict.py -v
 
       - name: Docker logs on failure
         if: failure()
-        run: docker compose logs api_predict
+        run: docker compose logs api-predict
 
       - name: Stop containers
         if: always()
