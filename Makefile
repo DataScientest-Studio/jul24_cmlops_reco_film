@@ -1,7 +1,7 @@
 NAMESPACE1 = reco-movies
 NAMESPACE2 = airflow
 
-.PHONY: help setup1 setup2 start stop down restart logs-supabase logs-airflow logs-api logs-fastapi clean network all namespace pv secrets configmaps deployments services ingress clean-kube-reco clean-kube-airflow create-configmap load-data-minikube install-airflow pv-airflow airflow reco
+.PHONY: help setup1 setup2 start stop down restart logs-supabase logs-airflow logs-api logs-fastapi clean network all namespace pv secrets configmaps deployments services ingress clean-kube-reco clean-kube-airflow apply-configmap load-data-minikube install-airflow pv-airflow airflow reco
 
 # Help command to list all available targets
 help:
@@ -18,7 +18,7 @@ help:
 	@echo "  logs-fastapi   - Show logs for FastAPI"
 	@echo "  clean          - Remove all containers and networks"
 	@echo "  clean-db       - Delete all data in the database and reload the schema and data"
-	@echo "  network        - Create the Docker network 'backend'"
+	@echo "  network        - apply the Docker network 'backend'"
 
 # Setup: Setup environment, load initial data and set env files based on .env.example
 # TODO: gérer le fait que l'on ait pas les posterUrl a ce stade pour le build des features
@@ -105,24 +105,30 @@ clean-db: network
 	@echo "##########################"
 	@echo "Run 'make start' to start all the services"
 
-# Network: create the Docker network 'backend'
+# Network: apply the Docker network 'backend'
 network:
-	docker network create backend || true
+	docker network apply backend || true
 
 
 
 ###### MAKEFILE KUBERNETES
-all: load-data-minikube namespace install-airflow pv-airflow pv secrets configmaps deployments services ingress
+all: namespace install-airflow pv-airflow pv secrets configmaps deployments services ingress
 
 # Installation de helm Airflow
 install-airflow:
 	sudo apt-get update
-	curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
-	chmod 700 get_helm.sh
-	./get_helm.sh
 	helm repo add apache-airflow https://airflow.apache.org
-	helm repo update
-	helm -n airflow upgrade --install airflow apache-airflow/airflow -f kubernetes/airflow/my_values.yml
+	helm upgrade --install airflow apache-airflow/airflow --namespace airflow --create-namespace -f kubernetes/airflow/my_values.yml
+	kubectl apply -f kubernetes/airflow/airflow-local-dags-folder-pv.yml -n Airflow
+	kubectl apply -f kubernetes/airflow/airflow-local-dags-folder-pvc.yml -n airflow
+	kubectl apply -f kubernetes/airflow/airflow-local-logs-folder-pv.yml -n airflow
+	kubectl apply -f kubernetes/airflow/airflow-local-logs-folder-pvc.yml -n airflow
+	kubectl apply -f kubernetes/airflow/order/order-data-folder-pv.yaml
+	kubectl apply -f kubernetes/airflow/order/order-data-folder-pvc.yaml
+	kubectl apply -f kubernetes/secrets/airflow-secrets.yaml
+	kubectl apply -f kubernetes/airflow/order/python-transform-job.yaml -n airflow
+	kubectl apply -f kubernetes/airflow/order/python-load-job.yaml -n airflow
+
 
 delete-airflow-statefulsets:
 	kubectl delete statefulset -n airflow airflow-triggerer || true
@@ -133,6 +139,13 @@ pv-airflow:
 	kubectl apply -f kubernetes/airflow/airflow-local-dags-folder-pvc.yml -n airflow  --validate=false
 	kubectl apply -f kubernetes/airflow/airflow-local-logs-folder-pv.yml -n airflow --validate=false
 	kubectl apply -f kubernetes/airflow/airflow-local-logs-folder-pvc.yml -n airflow --validate=false
+	kubectl apply -f kubernetes/airflow/order/order-data-folder-pv.yaml
+	kubectl apply -f kubernetes/airflow/order/order-data-folder-pvc.yaml
+
+delete-pv-airflow:
+	kubectl delete pv airflow-local-dags-folder || true
+	kubectl delete pv airflow-local-logs-folder || true
+	kubectl delete pv order-data-folder || true
 
 airflow: namespace pv-airflow
 	helm -n airflow upgrade --install airflow apache-airflow/airflow -f kubernetes/airflow/my_values.yml
@@ -193,6 +206,7 @@ ingress: check-kube
 
 clean-kube-reco: check-kube
 	kubectl delete namespace $(NAMESPACE1)
+
 
 clean-kube-airflow: check-kube
 	kubectl delete namespace $(NAMESPACE2)

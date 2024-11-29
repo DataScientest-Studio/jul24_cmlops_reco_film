@@ -12,4 +12,4 @@ spec:
     namespace: airflow
     name: airflow-local-dags-folder
   hostPath:
-    path: "/dags"
+    path: "/home/antoine/jul24_cmlops_reco_film/kubernetes/airflow/dags"

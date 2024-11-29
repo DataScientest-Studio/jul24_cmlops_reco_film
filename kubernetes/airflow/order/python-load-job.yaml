@@ -1,0 +1,22 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: python-load
+spec:
+  template:
+    spec:
+      containers:
+        - name: python-load
+          image: antoinepela/projet_reco_movies:order-python-build-latest
+          command: ["python", "main.py"]
+          envFrom:
+            - secretRef:
+                name: sql-conn
+          volumeMounts:
+            - name: order-data-folder
+              mountPath: /app/data/to_ingest
+      restartPolicy: Never
+      volumes:
+        - name: order-data-folder
+          hostPath:
+            path: /home/antoine/jul24_cmlops_reco_film/kubernetes/airflow/order/data/to_ingest
