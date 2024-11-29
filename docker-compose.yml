@@ -3,6 +3,7 @@ services:
     build:
       context: .
       dockerfile: api/predict/Dockerfile
+    image: api-predict
     container_name: api-predict
     depends_on:
       - tracking_server
@@ -20,6 +21,7 @@ services:
     build:
       context: streamlit
       dockerfile: Dockerfile
+    image: streamlit
     container_name: streamlit
     ports:
       - "8501:8501"
