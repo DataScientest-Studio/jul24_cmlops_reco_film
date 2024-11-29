@@ -1,4 +1,4 @@
-.PHONY: help setup1 setup2 start stop restart logs-supabase logs-airflow logs-api clean network
+.PHONY: help setup1 setup2 start stop restart clean network
 
 # Help command to list all available targets
 help:
@@ -26,19 +26,19 @@ setup1:
 	.venv/bin/python ml/src/features/build_features.py 
 	.venv/bin/python ml/src/models/train_model.py
 	@echo "###### ENV VARIABLES #####"
-	cd supabase/docker && cp .env.example .env
+	cd supabase && cp .env.example .env
 	cd airflow && cp .env.example .env
 	cd airflow && echo "AIRFLOW_UID=$(shell id -u)" >> .env
 	cp .env.example .env
 	@echo "##########################"
-	@echo "Set the desired env variables in the .env files (supabase/docker/.env, airflow/.env and .env) then run 'make setup2'"
+	@echo "Set the desired env variables in the .env files (supabase/.env, airflow/.env and .env) then run 'make setup2'"
 
 # Setup: Build all services and load data
 setup2: network
-	cd supabase/docker && docker compose pull
+	cd supabase && docker compose pull
 	cd airflow && docker compose up airflow-init
 	docker compose build
-	cd supabase/docker && docker compose up -d
+	cd supabase && docker compose up -d
 	sleep 10 && python ml/src/data/load_data_in_db.py
 	@echo "##########################"
 	@echo "Run 'make start' to start the services"
@@ -46,7 +46,7 @@ setup2: network
 # Start: start all services
 start: network
 	mkdir -p mlflow/db_data mlflow/minio_data
-	cd supabase/docker && docker compose up -d
+	cd supabase && docker compose up -d
 	cd airflow && docker compose up -d
 	docker compose up -d
 	@echo "##########################"
@@ -62,38 +62,28 @@ start: network
 stop:
 	docker compose stop
 	docker compose -f airflow/docker-compose.yaml stop
-	cd supabase/docker && docker compose stop
+	cd supabase && docker compose stop
 
 # Restart: restart all services
 restart: stop start
 
-# Logs: show logs for supabase, airflow and api
-logs-supabase:
-	docker compose -f supabase/docker/docker-compose.yml logs -f
-
-logs-airflow:
-	docker compose -f airflow/docker-compose.yaml logs -f
-
-logs-api:
-	docker compose logs -f
-
 # Clean: stop and remove all containers, networks, and volumes for all services
 clean:
-	cd supabase/docker && docker compose down -v --remove-orphans
+	cd supabase && docker compose down -v --remove-orphans
 	cd airflow && docker compose down -v --remove-orphans
 	docker compose down -v --remove-orphans
 	docker network rm backend || true
-	rm -rf supabase/docker/volumes/db/data/
-	rm -rf supabase/docker/volumes/storage/
+	rm -rf supabase/volumes/db/data/
+	rm -rf supabase/volumes/storage/
 	rm -rf mlflow/minio_data/
 	rm -rf mlflow/db_data/
 
 # Clean-db: delete all data in the database and reload the schema and data
 clean-db: network
-	cd supabase/docker && docker compose down -v
-	rm -rf supabase/docker/volumes/db/data/
-	rm -rf supabase/docker/volumes/storage/
-	cd supabase/docker && docker compose up -d
+	cd supabase && docker compose down -v
+	rm -rf supabase/volumes/db/data/
+	rm -rf supabase/volumes/storage/
+	cd supabase && docker compose up -d
 	sleep 10 && python ml/src/data/load_data_in_db.py
 	@echo "##########################"
 	@echo "Run 'make start' to start all the services"
@@ -102,4 +92,4 @@ clean-db: network
 network:
 	docker network create backend || true
 
-# TODO: add targets for testing
+# TODO: add targets for testing, logs, etc.
