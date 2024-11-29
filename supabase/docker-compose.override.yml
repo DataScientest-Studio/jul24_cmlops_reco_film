@@ -1,4 +1,4 @@
-# supabase/docker/docker-compose.override.yml
+# supabase/docker-compose.override.yml
 
 services:
   studio:
