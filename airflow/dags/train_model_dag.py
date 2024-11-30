@@ -146,7 +146,6 @@ def challenging_champion_task(**context):
 
     client = mlflow.tracking.MlflowClient()
 
-    # Correction de la vérification de connexion
     try:
         mlflow.search_runs().empty  # Vérifie si le DataFrame est vide
         print("Connexion à MLflow réussie")
@@ -178,10 +177,12 @@ def challenging_champion_task(**context):
         "average_neighbor_distance"
     )
 
-    # récupérer le champion
-    champion = client.get_model_version_by_alias(
-        name="movie_recommender", alias="champion"
-    )
+    try:
+        champion = client.get_model_version_by_alias(
+            name="movie_recommender", alias="champion"
+        )
+    except:
+        champion = None
 
     if champion:
         champion_rmse = mlflow.get_run(run_id=champion.run_id).data.metrics.get(
@@ -202,12 +203,12 @@ def challenging_champion_task(**context):
         print(f"Average neighbor distance champion : {champion_rmse}")
         print(f"Average neighbor distance challenger : {challenger_rmse}")
     else:
-        print("Aucun champion trouvé - Premier modèle enregistré")
+        print("Aucun champion trouvé")
         # S'il n'y a pas de champion, le challenger devient automatiquement le champion
         client.set_registered_model_alias(
             name="movie_recommender", alias="champion", version=challenger.version
         )
-        print(f"Modèle {challenger.version} défini comme champion initial")
+        print(f"Modèle {challenger.version} défini comme premier champion")
 
 
 def api_predict_reload_model_task(**context):

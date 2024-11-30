@@ -7,22 +7,17 @@ import dotenv
 
 dotenv.load_dotenv()
 
-def connect_to_supabase():
-    supabase_url = os.environ.get("SUPABASE_URL")
-    supabase_key = os.environ.get("SERVICE_ROLE_KEY")
 
-    if not all([supabase_url, supabase_key]):
+def connect_to_supabase():
+    SUPABASE_URL = "http://localhost:8000"
+    SERVICE_ROLE_KEY = os.getenv("SERVICE_ROLE_KEY")
+
+    if not all([SERVICE_ROLE_KEY]):
         raise ValueError(
-            "Les variables d'environnement SUPABASE_URL et SERVICE_ROLE_KEY doivent être définies."
+            "La variable d'environnement SERVICE_ROLE_KEY doit être définie."
         )
 
-    supabase_url = (
-        f"https://{supabase_url}"
-        if not supabase_url.startswith(("http://", "https://"))
-        else supabase_url
-    )
-
-    return create_client(supabase_url, supabase_key)
+    return create_client(SUPABASE_URL, SERVICE_ROLE_KEY)
 
 
 def initialize_supabase_connection():
@@ -143,5 +138,5 @@ for table_name, file_path in data_config["tables"].items():
 
 print("Données chargées avec succès dans la base de données Supabase.")
 
-supabase.rpc('reset_all_sequences').execute()
+supabase.rpc("reset_all_sequences").execute()
 print("Séquences réinitialisées avec succès.")
