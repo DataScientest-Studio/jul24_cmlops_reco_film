@@ -9,24 +9,42 @@ The project is organized as follows:
 ```
 ├── .github
 │   └── workflows
-│       └── test-api.yml                    <- GitHub Actions workflow for testing the API.
+│       ├── test-api.yml                    <- GitHub Actions workflow for testing the API.
+│       └── build-and-push-images.yml       <- GitHub Actions workflow for building and pushing the images.
 │
 ├── airflow
-│   ├── Dockerfile
+│   ├── config                           
 │   ├── dags
 │   │   ├── scraping_new_movies.py          <- DAG for scraping new movies.
 │   │   └── train_model_dag.py              <- DAG for training the model.
+│   │
+│   ├── logs
+│   ├── plugins
+│   ├── Dockerfile
 │   ├── docker-compose.override.yaml
 │   ├── docker-compose.yaml
-│   ├── logs
 │   └── requirements.txt
 │
-├── api
-│   └── predict
-│       ├── Dockerfile
-│       ├── main.py                         <- Main file for the API.
-│       ├── metrics.py                      <- Metrics for the API.
-│       └── requirements.txt                <- Requirements for the API.
+├── app
+│   ├── api
+│   │   └── predict
+│   │       ├── Dockerfile
+│   │       ├── main.py                     <- Main file for the API.
+│   │       ├── metrics.py                  <- Metrics for the API.
+│   │       └── requirements.txt            <- Requirements for the API.
+│   │
+│   ├── streamlit
+│   │   ├── pages
+│   │   │   ├── 1_Recommandations.py        <- Page for recommendations.
+│   │   │   └── 2_Profil.py                 <- Page for the profile.
+│   │   ├── Dockerfile
+│   │   ├── Home.py                         <- Main page.
+│   │   ├── requirements.txt                <- Requirements for the Streamlit app.
+│   │   ├── style.css                       <- CSS for the pages.
+│   │   ├── supabase_auth.py                <- Supabase authentication.
+│   │   └── utils.py                        <- Utility functions.
+│   │
+│   └── docker-compose.yml                  <- Docker compose file for the Streamlit app and the API.
 │
 ├── ml
 │   ├── models
@@ -44,6 +62,7 @@ The project is organized as follows:
 │       └── requirements.txt                <- Requirements for the project.
 │
 ├── mlflow
+│   ├── docker-compose.yml
 │   ├── Dockerfile
 │   └── requirements.txt
 │
@@ -56,20 +75,10 @@ The project is organized as follows:
 │   │       └── datasources
 │   │           └── datasource.yml          <- Datasource configuration.
 │   └── prometheus
-│       └── prometheus.yml                  <- Prometheus configuration.
+│   │   └── prometheus.yml                  <- Prometheus configuration.
+│   │
+│   └── docker-compose.yml
 │
-├── streamlit
-│   └── pages
-│   │   ├── 1_Recommandations.py            <- Page for recommendations.
-│   │   └── 2_Profil.py                     <- Page for the profile.
-│   ├── Dockerfile
-│   ├── Home.py                             <- Main page.
-│   ├── requirements.txt                    <- Requirements for the Streamlit app.
-│   ├── style.css                           <- CSS for the pages.
-│   ├── supabase_auth.py                    <- Supabase authentication.
-│   └── utils.py                            <- Utility functions.
-│
-
 ├── supabase
 │   ├── README.md
 │   ├── docker-compose.override.yml
@@ -108,7 +117,6 @@ The project is organized as follows:
 │
 ├── .env.example                            <- Example of the .env file.
 ├── .gitignore                              <- Git ignore file.
-├── docker-compose.yml                      <- Docker compose file.
 ├── LICENSE
 ├── Makefile                                <- Makefile for the project.
 ├── README.md                               <- This README file.
@@ -162,7 +170,7 @@ To set up the project for local development, from the root of the repository fol
 
 1. Run the `make setup1` command.
 
-2. Set the environment variable TMDB_API_TOKEN in the .env file. This is necessary to be able to execute the DAG `scraping_new_movies.py` in Airflow.
+2. Set the environment variable TMDB_API_TOKEN in the .env file. This is necessary to be able to execute the DAG `scraping_new_movies.py` in Airflow. You can get a token [here](https://www.themoviedb.org/settings/api).
 
 3. Run the `make setup2` command.
 
@@ -173,7 +181,7 @@ To set up the project for local development, from the root of the repository fol
    - Once you sign in, navigate to the Access Keys tab and click the Create access key button. This will take you to the Create Access Key page.
    - Your access key and secret key are not saved until you click the Create button. Do not navigate away from this page until this is done. Don’t worry about copying the keys from this screen. Once you click the Create button, you will be given the option to download the keys to your file system (in a JSON file).
    - Next, create a bucket named `mlflow`. This is straightforward, go into the Buckets tab and click the `Create Bucket` button.
-   - Once you have your keys and you have created your bucket, you can finish setting up the services by stopping the containers, updating the `.env`, and then restarting the containers. The command below will stop and remove your containers.
+   - Once you have your keys and you have created your bucket, you can finish setting up the services by stopping the containers, updating the `.env` file with your access and secret keys, and then restarting the containers. The command below will stop and remove your containers.
      ```bash
      cd mlflow
      docker compose down
@@ -190,3 +198,23 @@ To set up the project for local development, from the root of the repository fol
 - MinIO: [http://localhost:9001](http://localhost:9001)
 - Prometheus: [http://localhost:9090](http://localhost:9090)
 - Grafana: [http://localhost:3000](http://localhost:3000)
+
+
+## From here have fun!
+
+### First recommendations
+You can open the Streamlit app, create an account and have your first recommendations!
+
+In order for the app to work you need to use an email with a number just before the @ symbol (ex: `user1@example.com`, `user20@example.com`, etc.). It'll allow you to have an existing profil linked to your account.
+
+### Run the DAGs
+You can run the DAGs in Airflow to scrape new movies and train the model.
+
+### Analyse the model in MLFlow
+You can explore the artefacts, metrics and logs of the model in MLFlow if you runned the training DAG.
+
+### Explore Prometheus and Grafana
+You can explore the metrics in Grafana's dashboard.
+
+### Explore Supabase
+You can explore the database in Supabase's dashboard.

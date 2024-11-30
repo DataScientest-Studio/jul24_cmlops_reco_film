@@ -4,14 +4,14 @@ from datetime import datetime, timedelta
 import requests
 import os
 from supabase import create_client
-from dotenv import load_dotenv
+import dotenv
 import time
 
+dotenv.load_dotenv()
 
-load_dotenv()
-TMDB_API_TOKEN = os.environ.get("TMDB_API_TOKEN")
-SUPABASE_URL = os.environ.get("SUPABASE_URL")
-SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
+TMDB_API_TOKEN = os.getenv("TMDB_API_TOKEN")
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 DATE = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
 
 

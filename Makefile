@@ -1,4 +1,4 @@
-.PHONY: help setup1 setup2 start stop restart clean network
+.PHONY: help setup1 setup2 start stop restart clean very-clean clean-db network
 
 # Help command to list all available targets
 help:
@@ -9,10 +9,8 @@ help:
 	@echo "  start      	- Start all services"
 	@echo "  stop       	- Stop all services"
 	@echo "  restart    	- Restart all services"
-	@echo "  logs-supabase  - Show logs for supabase"
-	@echo "  logs-airflow   - Show logs for airflow"
-	@echo "  logs-api       - Show logs for api"
 	@echo "  clean          - Remove all containers and networks"
+	@echo "  very-clean     - Remove all containers, networks, and volumes for all services, and remove all images"
 	@echo "  clean-db       - Delete all data in the database and reload the schema and data"
 	@echo "  network        - Create the Docker network 'backend'"
 
@@ -20,7 +18,7 @@ help:
 setup1:
 	@echo "###### SETUP ENV #########"
 	python3 -m venv .venv
-	.venv/bin/pip install -r requirements-dev.txt
+	.venv/bin/pip install -r ml/src/requirements.txt
 	@echo "###### DATA & MODEL ######"
 	.venv/bin/python ml/src/data/import_raw_data.py
 	.venv/bin/python ml/src/features/build_features.py 
@@ -36,16 +34,12 @@ setup2: network
 	cd supabase && docker compose pull
 	cd supabase && docker compose --env-file ../.env up -d
 	cd airflow && docker compose --env-file ../.env up airflow-init
-	cd mlflow && docker compose --env-file ../.env build
-	cd monitoring && docker compose --env-file ../.env build
-	cd app && docker compose --env-file ../.env build
 	sleep 10 && python ml/src/data/load_data_in_db.py
 	@echo "##########################"
 	@echo "Run 'make start' to start the services"
 
 # Start: start all services
 start: network
-	mkdir -p mlflow/db_data mlflow/minio_data
 	cd supabase && docker compose --env-file ../.env up -d
 	cd mlflow && docker compose --env-file ../.env up -d
 	cd airflow && docker compose --env-file ../.env up -d
@@ -88,7 +82,7 @@ clean:
 
 # Very-clean: stop and remove all containers, networks, and volumes for all services, and remove all images
 # Warning: this will remove all images, not just the ones for the current project
-very-clean:
+very-clean: clean
 	docker system prune -a -f --volumes
 
 # Clean-db: delete all data in the database and reload the schema and data
