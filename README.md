@@ -1,91 +1,241 @@
-# Project Name
+# Movie Recommendation MLOps Project
 
-This project is a starting Pack for MLOps projects based on the subject "movie_recommandation". It's not perfect so feel free to make some modifications on it.
+This project is a starting pack for MLOps projects focused on the subject of "movie recommendation". It provides a structured framework to develop, train, and deploy machine learning models for recommending movies to users. It uses Supabase for the backend, Airflow for the orchestration, MLflow for the tracking, Minio for the storage of the models, Prometheus and Grafana for the monitoring.
 
 ## Project Organization
 
-    ├── LICENSE
-    ├── README.md          <- The top-level README for developers using this project.
-    ├── data
-    │   ├── external       <- Data from third party sources.
-    │   ├── interim        <- Intermediate data that has been transformed.
-    │   ├── processed      <- The final, canonical data sets for modeling.
-    │   └── raw            <- The original, immutable data dump.
-    │
-    ├── logs               <- Logs from training and predicting
-    │
-    ├── models             <- Trained and serialized models, model predictions, or model summaries
-    │
-    ├── notebooks          <- Jupyter notebooks. Naming convention is a number (for ordering),
-    │                         the creator's initials, and a short `-` delimited description, e.g.
-    │                         `1.0-jqp-initial-data-exploration`.
-    │
-    ├── references         <- Data dictionaries, manuals, and all other explanatory materials.
-    │
-    ├── reports            <- Generated analysis as HTML, PDF, LaTeX, etc.
-    │   └── figures        <- Generated graphics and figures to be used in reporting
-    │
-    ├── requirements.txt   <- The requirements file for reproducing the analysis environment, e.g.
-    │                         generated with `pip freeze > requirements.txt`
-    │
-    ├── src                <- Source code for use in this project.
-    │   ├── __init__.py    <- Makes src a Python module
-    │   │
-    │   ├── data           <- Scripts to download or generate data
-    │   │   ├── check_structure.py
-    │   │   ├── import_raw_data.py
-    │   │   └── make_dataset.py
-    │   │
-    │   ├── features       <- Scripts to turn raw data into features for modeling
-    │   │   └── build_features.py
-    │   │
-    │   ├── models         <- Scripts to train models and then use trained models to make
-    │   │   │                 predictions
-    │   │   ├── predict_model.py
-    │   │   └── train_model.py
-    │   │
-    │   ├── visualization  <- Scripts to create exploratory and results oriented visualizations
-    │   │   └── visualize.py
-    │   └── config         <- Describe the parameters used in train_model.py and predict_model.py
+The project is organized as follows:
 
----
+```
+├── .github
+│   └── workflows
+│       └── test-api.yml                    <- GitHub Actions workflow for testing the API.
+│
+├── airflow
+│   ├── Dockerfile
+│   ├── dags
+│   │   ├── scraping_new_movies.py          <- DAG for scraping new movies.
+│   │   └── train_model_dag.py              <- DAG for training the model.
+│   ├── docker-compose.override.yaml
+│   ├── docker-compose.yaml
+│   ├── logs
+│   └── requirements.txt
+│
+├── api
+│   └── predict
+│       ├── Dockerfile
+│       ├── main.py                         <- Main file for the API.
+│       ├── metrics.py                      <- Metrics for the API.
+│       └── requirements.txt                <- Requirements for the API.
+│
+├── ml
+│   ├── models
+│   │   └── model.pkl                       <- Initial trained model.
+│   └── src
+│       ├── data
+│       │   ├── check_structure.py          <- Script for checking the structure of the data.
+│       │   ├── import_raw_data.py          <- Script for importing raw data.
+│       │   └── load_data_in_db.py          <- Script for loading data into the database.
+│       ├── features
+│       │   └── build_features.py           <- Script for building features.
+│       ├── models
+│       │   ├── predict_model.py            <- Script for making predictions.
+│       │   └── train_model.py              <- Script for training the model.
+│       └── requirements.txt                <- Requirements for the project.
+│
+├── mlflow
+│   ├── Dockerfile
+│   └── requirements.txt
+│
+├── monitoring
+│   ├── grafana
+│   │   └── provisioning
+│   │       ├── dashboards
+│   │       │   ├── api_dashboard.json      <- Dashboard for the API.
+│   │       │   └── dashboards.yml          <- Dashboards configuration.
+│   │       └── datasources
+│   │           └── datasource.yml          <- Datasource configuration.
+│   └── prometheus
+│       └── prometheus.yml                  <- Prometheus configuration.
+│
+├── streamlit
+│   └── pages
+│   │   ├── 1_Recommandations.py            <- Page for recommendations.
+│   │   └── 2_Profil.py                     <- Page for the profile.
+│   ├── Dockerfile
+│   ├── Home.py                             <- Main page.
+│   ├── requirements.txt                    <- Requirements for the Streamlit app.
+│   ├── style.css                           <- CSS for the pages.
+│   ├── supabase_auth.py                    <- Supabase authentication.
+│   └── utils.py                            <- Utility functions.
+│
 
-## Steps to follow
+├── supabase
+│   ├── README.md
+│   ├── docker-compose.override.yml
+│   ├── docker-compose.s3.yml
+│   ├── docker-compose.yml
+│   └── volumes
+│       ├── api
+│       │   └── kong.yml
+│       ├── db
+│       │   ├── _supabase.sql
+│       │   ├── init
+│       │   │   ├── 01-project-tables.sql    <- SQL script for creating project tables.
+│       │   │   ├── 02-auth-trigger.sql      <- SQL script for creating the auth trigger.
+│       │   │   ├── 03-security-policies.sql <- SQL script for creating security policies.
+│       │   │   └── data.sql
+│       │   ├── jwt.sql
+│       │   ├── logs.sql
+│       │   ├── pooler.sql
+│       │   ├── realtime.sql
+│       │   ├── roles.sql
+│       │   └── webhooks.sql
+│       ├── functions
+│       │   ├── hello
+│       │   │   └── index.ts
+│       │   └── main
+│       │       └── index.ts
+│       ├── logs
+│       │   └── vector.yml
+│       └── pooler
+│           └── pooler.exs
+│
+├── tests
+│   ├── requirements.txt                    <- Requirements for the tests.
+│   ├── test_api_predict.py                 <- Test for the API.
+│   └── test_rls.py                         <- Test for the RLS.
+│
+├── .env.example                            <- Example of the .env file.
+├── .gitignore                              <- Git ignore file.
+├── docker-compose.yml                      <- Docker compose file.
+├── LICENSE
+├── Makefile                                <- Makefile for the project.
+├── README.md                               <- This README file.
+├── requirements-dev.txt
+└── requirements-ref.txt
+```
 
-Convention : All python scripts must be run from the root specifying the relative file path.
+## Tools Used
 
-### 1- Create a virtual environment using Virtualenv.
+- **Python**: The main programming language used for data processing, model training, and prediction.
+- **Docker & Docker Compose**: Used for containerizing the application and setting up a local development environment.
+- **Supabase**: A backend service for managing the database and authentication.
+- **MLflow**: For tracking experiments and managing machine learning models.
+- **Apache Airflow**: For orchestrating data workflows and model training pipelines.
+- **Streamlit**: For building interactive web applications to display recommendations.
+- **FastAPI**: For building the REST API for the movie recommendation service.
+- **Prometheus**: For monitoring and alerting.
+- **Grafana**: For visualizing metrics.
 
-    `python -m venv my_env`
+## Setting Up for Local Development
 
-### Activate it
+To set up the project for local development, follow these steps (every command is as you would execute it in the root of the repository):
 
-    `./my_env/Scripts/activate`
+1. **Clone the Repository**:
+   ```bash
+   git clone <repository-url>
+   cd <repository-directory>
+   ```
 
-### Install the packages from requirements.txt (You can ignore the warning with "setup.py")
+2. **Create a Virtual Environment**:
+   ```bash
+   python -m venv .venv
+   ```
 
-    `pip install -r .\requirements.txt`
+3. **Activate the Virtual Environment**:
+   - On Windows:
+     ```bash
+     .\.venv\Scripts\activate
+     ```
+   - On macOS/Linux:
+     ```bash
+     source .venv/bin/activate
+     ```
 
-### 2- Execute import_raw_data.py to import the 4 datasets (say yes when it asks you to create a new folder)
+4. **Install Required Packages**:
+   ```bash
+   pip install -r requirements-dev.txt
+   ```
 
-    `python .\src\data\import_raw_data.py`
+5. **Run the Application**:
+   - Execute the data import and processing scripts:
+     ```bash
+     python ml/src/data/import_raw_data.py
+     python ml/src/features/build_features.py
+     ```
 
-### 3- Execute make_dataset.py initializing `./data/raw` as input file path and `./data/processed` as output file path.
+6. **Train the Model**:
+   ```bash
+   python ml/src/models/train_model.py
+   ```
 
-    `python .\src\data\make_dataset.py`
+7. **Set the Environment Variables**:
+   - Copy the .env.example file to .env and set the desired variables.
+   - In the airflow folder, copy the .env.example file to .env and set the desired variables. The AIRFLOW_UID variable is set like this:
+     ```bash
+     AIRFLOW_UID=$(id -u) >> .env
+     ```
+   - In the supabase folder, copy the .env.example file to .env and set the desired variables.
 
-### 4- Execute build_features.py to preprocess the data (this can take a while)
+> 💡 **Alternatively**: For a simplified setup, you can run the `make setup1` command which will automatically execute steps 1 through 7. Then set the environment variables as explained above.
 
-    `python .\src\features\build_features.py`
+The following steps are executed in the root of the repository and require the environment variables to be set in .env files (see step 7).
 
-### 5- Execute train_model.py to train the model
+8. **Create the Docker network**:
+   ```bash
+   docker network create backend
+   ```
 
-    `python .\src\models\train_model.py`
+9. **Build and Up the Supabase services and load the data in the database**:
+   - Pull Supabase images:
+     ```bash
+     cd supabase && docker compose pull
+     ```
+   - Up Supabase services:
+     ```bash
+     cd supabase && docker compose up -d
+     ```
+   - Load data in the database (make sure the database is ready, it may take a minute):
+     ```bash
+     python ml/src/data/load_data_in_db.py
+     ``` 
 
-### 5- Finally, execute predict_model.py file to make the predictions (by default you will be printed predictions for the first 5 users of the dataset).
+10. **Build and Up the Airflow services**:
+   - Initialize Airflow:
+     ```bash
+     cd airflow && docker compose up airflow-init
+     ```
+   - Up Airflow services:
+     ```bash
+     cd airflow && docker compose up -d
+     ```
 
-    `python .\src\models\predict_model.py`
+11. **Build and Up the other services (API, Streamlit, MLflow + Minio + db, Prometheus, Grafana)**:
+   - Build the services:
+     ```bash
+     docker compose build
+     ```
+   - Up the services:
+     ```bash
+     docker compose up -d
+     ```
 
-### Note that we have 10 recommandations per user
+> 💡 **Alternatively**: For a simplified setup, you can run the `make setup2` command followed by the `make start` command which will automatically execute steps 8 through 11.
 
-<p><small>Project based on the <a target="_blank" href="https://drivendata.github.io/cookiecutter-data-science/">cookiecutter data science project template</a>. #cookiecutterdatascience</small></p>
+
+**Access the Services**:
+- Supabase: [http://localhost:8000](http://localhost:8000)
+- Airflow: [http://localhost:8080](http://localhost:8080)
+- Streamlit: [http://localhost:8501](http://localhost:8501)
+- MLflow: [http://localhost:5001](http://localhost:5001)
+- Minio: [http://localhost:9001](http://localhost:9001)
+- Prometheus: [http://localhost:9090](http://localhost:9090)
+- Grafana: [http://localhost:3000](http://localhost:3000)
+
+
+## TODO
+- [ ] parler du docker compose override
+- [ ] parler de github actions
+- [ ] parler des tests
+- [ ] parler du endpoint /reload_model
