@@ -110,3 +110,6 @@ minio_data/
 
 # mlflow db
 db_data/
+
+notebooks/
+*.ipynb
