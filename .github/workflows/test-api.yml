@@ -2,7 +2,7 @@ name: Test API Predict
 
 on:
   push:
-    branches: ["master", "mike-08"]
+    branches: ["master", "mike0.9"]
   pull_request:
     branches: ["master"]
 
