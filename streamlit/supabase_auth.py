@@ -11,7 +11,7 @@ if not SUPABASE_URL or not SUPABASE_KEY:
     )
 
 # Initialiser le client Supabase
-supabase: Client = create_client("http://kong:8000", SUPABASE_KEY)
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 
 def sign_up(email: str, password: str):
