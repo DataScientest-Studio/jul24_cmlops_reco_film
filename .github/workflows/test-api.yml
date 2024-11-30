@@ -43,7 +43,7 @@ jobs:
 
       - name: Run API tests
         run: |
-          pytest tests/test_api-predict.py -v
+          pytest tests/test_api_predict.py -v
 
       - name: Docker logs on failure
         if: failure()
