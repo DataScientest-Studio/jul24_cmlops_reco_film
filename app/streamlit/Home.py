@@ -1,5 +1,9 @@
 import streamlit as st
 from supabase_auth import sign_up, sign_in, sign_out, supabase
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 
 def get_user_info(auth_id):

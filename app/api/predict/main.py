@@ -16,6 +16,7 @@ from metrics import (
 )
 import time
 from prometheus_client import make_asgi_app
+import requests
 
 dotenv.load_dotenv()
 
@@ -39,11 +40,14 @@ def load_recommender_model():
         mlflow.set_tracking_uri(mlflow_uri)
         print("URI MLflow configuré")
 
-        # Vérifier la connexion à MLflow
+        # Vérifier la connexion à MLflow avec un délai d'attente
         try:
+            import requests
+            response = requests.get(mlflow_uri, timeout=5)  # Délai d'attente de 5 secondes
+            response.raise_for_status()
             mlflow.search_runs()
             print("Connexion à MLflow réussie")
-        except Exception as e:
+        except requests.exceptions.RequestException as e:
             print(f"Erreur de connexion à MLflow: {str(e)}")
             raise
 
@@ -68,7 +72,6 @@ def load_recommender_model():
         return model, model_infos
 
     except Exception as e:
-        print(f"Erreur lors du chargement du modèle MLflow: {str(e)}")
         print("Tentative de chargement du modèle local de secours")
 
         try:

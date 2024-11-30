@@ -72,6 +72,11 @@ x-airflow-common:
     # The following line can be used to set a custom config file, stored in the local config folder
     # If you want to use it, outcomment it and replace airflow.cfg with the name of your config file
     # AIRFLOW_CONFIG: '/opt/airflow/config/airflow.cfg'
+    SUPABASE_URL: ${SUPABASE_URL}
+    SUPABASE_KEY: ${ANON_KEY}
+    MLFLOW_TRACKING_URI: ${MLFLOW_TRACKING_URI}
+    TMDB_API_TOKEN: ${TMDB_API_TOKEN}
+    AIRFLOW_UID: ${AIRFLOW_UID}
   volumes:
     - ${AIRFLOW_PROJ_DIR:-.}/dags:/opt/airflow/dags
     - ${AIRFLOW_PROJ_DIR:-.}/logs:/opt/airflow/logs

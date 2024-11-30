@@ -2,10 +2,10 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-COPY ./api/predict/requirements.txt .
+COPY ./app/api/predict/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY ./api/predict /app
+COPY ./app/api/predict /app
 COPY ./ml/models /app
 
 ENV PYTHONDONTWRITEBYTECODE=1 \

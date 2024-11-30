@@ -128,114 +128,65 @@ The project is organized as follows:
 - **Prometheus**: For monitoring and alerting.
 - **Grafana**: For visualizing metrics.
 
-## Setting Up for Local Development
+## Before setting up the project
 
-To set up the project for local development, follow these steps (every command is as you would execute it in the root of the repository):
-
-1. **Clone the Repository**:
+Make sure you have the following tools installed:
+- Docker
    ```bash
-   git clone <repository-url>
-   cd <repository-directory>
+   docker --version
+   ```
+- Docker Compose
+   ```bash
+   docker compose version
+   ```
+- Python 3.10+
+   ```bash
+   python --version
+   ```
+- pip
+   ```bash
+   pip --version
+   ```
+- git
+   ```bash
+   git --version
+   ```
+- make
+   ```bash
+   make --version
    ```
 
-2. **Create a Virtual Environment**:
-   ```bash
-   python -m venv .venv
-   ```
+## Setting Up the Project for Local Development
 
-3. **Activate the Virtual Environment**:
-   - On Windows:
+To set up the project for local development, from the root of the repository follow the steps below:
+
+1. Run the `make setup1` command.
+
+2. Set the environment variable TMDB_API_TOKEN in the .env file. This is necessary to be able to execute the DAG `scraping_new_movies.py` in Airflow.
+
+3. Run the `make setup2` command.
+
+4. Run the `make start` command.
+
+5. Setup access and the bucket for MLFlow:
+   - From your browser, go to `localhost:9001` to access the MinIO console. Sign in using the root user and password specified in the `.env` file.
+   - Once you sign in, navigate to the Access Keys tab and click the Create access key button. This will take you to the Create Access Key page.
+   - Your access key and secret key are not saved until you click the Create button. Do not navigate away from this page until this is done. Don’t worry about copying the keys from this screen. Once you click the Create button, you will be given the option to download the keys to your file system (in a JSON file).
+   - Next, create a bucket named `mlflow`. This is straightforward, go into the Buckets tab and click the `Create Bucket` button.
+   - Once you have your keys and you have created your bucket, you can finish setting up the services by stopping the containers, updating the `.env`, and then restarting the containers. The command below will stop and remove your containers.
      ```bash
-     .\.venv\Scripts\activate
+     cd mlflow
+     docker compose down
+     docker compose --env-file ../.env up -d --build
      ```
-   - On macOS/Linux:
-     ```bash
-     source .venv/bin/activate
-     ```
-
-4. **Install Required Packages**:
-   ```bash
-   pip install -r requirements-dev.txt
-   ```
-
-5. **Run the Application**:
-   - Execute the data import and processing scripts:
-     ```bash
-     python ml/src/data/import_raw_data.py
-     python ml/src/features/build_features.py
-     ```
-
-6. **Train the Model**:
-   ```bash
-   python ml/src/models/train_model.py
-   ```
-
-7. **Set the Environment Variables**:
-   - Copy the .env.example file to .env and set the desired variables.
-   - In the airflow folder, copy the .env.example file to .env and set the desired variables. The AIRFLOW_UID variable is set like this:
-     ```bash
-     AIRFLOW_UID=$(id -u) >> .env
-     ```
-   - In the supabase folder, copy the .env.example file to .env and set the desired variables.
-
-> 💡 **Alternatively**: For a simplified setup, you can run the `make setup1` command which will automatically execute steps 1 through 7. Then set the environment variables as explained above.
-
-The following steps are executed in the root of the repository and require the environment variables to be set in .env files (see step 7).
-
-8. **Create the Docker network**:
-   ```bash
-   docker network create backend
-   ```
-
-9. **Build and Up the Supabase services and load the data in the database**:
-   - Pull Supabase images:
-     ```bash
-     cd supabase && docker compose pull
-     ```
-   - Up Supabase services:
-     ```bash
-     cd supabase && docker compose up -d
-     ```
-   - Load data in the database (make sure the database is ready, it may take a minute):
-     ```bash
-     python ml/src/data/load_data_in_db.py
-     ``` 
-
-10. **Build and Up the Airflow services**:
-   - Initialize Airflow:
-     ```bash
-     cd airflow && docker compose up airflow-init
-     ```
-   - Up Airflow services:
-     ```bash
-     cd airflow && docker compose up -d
-     ```
-
-11. **Build and Up the other services (API, Streamlit, MLflow + Minio + db, Prometheus, Grafana)**:
-   - Build the services:
-     ```bash
-     docker compose build
-     ```
-   - Up the services:
-     ```bash
-     docker compose up -d
-     ```
-
-> 💡 **Alternatively**: For a simplified setup, you can run the `make setup2` command followed by the `make start` command which will automatically execute steps 8 through 11.
-
+     (may be useful to do it in a new terminal to avoid cache issues with the `.env` file)
 
 **Access the Services**:
 - Supabase: [http://localhost:8000](http://localhost:8000)
 - Airflow: [http://localhost:8080](http://localhost:8080)
 - Streamlit: [http://localhost:8501](http://localhost:8501)
-- MLflow: [http://localhost:5001](http://localhost:5001)
-- Minio: [http://localhost:9001](http://localhost:9001)
+- API: [http://localhost:8002/docs](http://localhost:8002/docs)
+- MLFlow: [http://localhost:5001](http://localhost:5001)
+- MinIO: [http://localhost:9001](http://localhost:9001)
 - Prometheus: [http://localhost:9090](http://localhost:9090)
 - Grafana: [http://localhost:3000](http://localhost:3000)
-
-
-## TODO
-- [ ] parler du docker compose override
-- [ ] parler de github actions
-- [ ] parler des tests
-- [ ] parler du endpoint /reload_model
