@@ -30,13 +30,6 @@ jobs:
         run: |
           docker compose -f app/docker-compose.yml up -d api-predict --build
 
-      - name: Check container content
-        run: |
-          echo "Contenu du dossier /app:"
-          docker exec api-predict ls -la /app
-          echo "Contenu du dossier /app/predict:"
-          docker exec api-predict ls -la /app/predict
-
       - name: Wait for API to be ready
         run: |
           timeout 60s bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' localhost:8002/model_info)" != "200" ]]; do sleep 1; done' || false
@@ -47,10 +40,10 @@ jobs:
 
       - name: Docker logs on failure
         if: failure()
-        run: docker compose logs api-predict
+        run: docker compose -f app/docker-compose.yml logs api-predict
 
       - name: Stop containers
         if: always()
         run: |
-          docker compose down
+          docker compose -f app/docker-compose.yml down
           docker network rm backend
