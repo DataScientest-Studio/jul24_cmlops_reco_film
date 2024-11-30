@@ -28,8 +28,7 @@ jobs:
 
       - name: Build and start API container
         run: |
-          docker compose build api-predict
-          docker compose up -d api-predict
+          docker compose -f app/docker-compose.yml up -d api-predict --build
 
       - name: Check container content
         run: |
@@ -40,7 +39,7 @@ jobs:
 
       - name: Wait for API to be ready
         run: |
-          timeout 240s bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' localhost:8002/model_info)" != "200" ]]; do sleep 1; done' || false
+          timeout 60s bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' localhost:8002/model_info)" != "200" ]]; do sleep 1; done' || false
 
       - name: Run API tests
         run: |
