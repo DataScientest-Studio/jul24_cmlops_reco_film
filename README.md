@@ -11,7 +11,7 @@
 System of recommendation of movies based on the user's profile and preferences.
 
 </div>
-<div align="center"><h4><a href="#-about-the-project">ℹ️ About the Project</a> • <a href="#-showcase">🏞 Showcase</a> • <a href="#️-features">⭐️ Features</a> • <a href="#-stack-tech">🛠 Stack Tech</a> • <a href="#-️setup">⚙ ️Setup</a> • <a href="#-from-here-have-fun">🎉 Have fun!</a> • <a href="#-about-the-authors">👨🏻‍ About the Authors</a> • <a href="#-license">📖 License</a></h4></div>
+<div align="center"><h4><a href="#-about-the-project">ℹ️ About the Project</a> • <a href="#-showcase">🏞 Showcase</a> • <a href="#️-features">⭐️ Features</a> • <a href="#-stack-tech">🛠 Stack Tech</a> • <a href="#-️setup">⚙ ️Setup</a> • <a href="#-from-here-have-fun">🎉 Have fun!</a> • <a href="#-about-the-authors">👨‍💻 About the Authors</a> • <a href="#-license">📖 License</a></h4></div>
 
 ## ℹ️ About the Project
 
