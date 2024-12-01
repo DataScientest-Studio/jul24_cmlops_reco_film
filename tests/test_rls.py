@@ -1,14 +1,17 @@
 import os
 from supabase import create_client, Client, ClientOptions
 import pytest
+import dotenv
+
+dotenv.load_dotenv()
 
 # Configuration
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_ANON_KEY = os.getenv("SUPABASE_KEY")
 
 user1_email = "user1@example.com"
-user2_email = "user2@example.com"
-password = "azerty123"
+user2_email = "user14@example.com"
+password = "azeqsd123"
 
 
 @pytest.fixture

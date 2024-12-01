@@ -104,3 +104,14 @@ trash/
 
 # pytest cache
 .pytest_cache/
+
+# MinIO
+minio_data/
+
+# mlflow db
+db_data/
+
+notebooks/
+*.ipynb
+
+todo.md

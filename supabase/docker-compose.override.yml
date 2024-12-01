@@ -1,0 +1,59 @@
+# supabase/docker-compose.override.yml
+
+services:
+  studio:
+    networks:
+      - supabase_default
+  analytics:
+    networks:
+      - supabase_default
+  kong:
+    networks:
+      - supabase_default
+      - backend
+  auth:
+    networks:
+      - supabase_default
+  rest:
+    networks:
+      - supabase_default
+  db:
+    networks:
+      - supabase_default
+  realtime:
+    networks:
+      - supabase_default
+  meta:
+    networks:
+      - supabase_default
+  supavisor:
+    networks:
+      - supabase_default
+  functions:
+    networks:
+      - supabase_default
+  vector:
+    networks:
+      - supabase_default
+
+  # Commun avec S3
+  storage:
+    networks:
+      - supabase_default
+  imgproxy:
+    networks:
+      - supabase_default
+  
+  # depuis S3
+  # minio:
+  #   networks:
+  #     - supabase_default
+  # minio-createbucket:
+  #   networks:
+  #     - supabase_default
+
+networks:
+  backend:
+    external: true
+  supabase_default:
+    driver: bridge

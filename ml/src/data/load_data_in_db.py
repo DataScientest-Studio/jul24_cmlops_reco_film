@@ -3,24 +3,21 @@ import os
 from supabase import create_client, Client
 from tqdm import tqdm
 import numpy as np
+import dotenv
+
+dotenv.load_dotenv()
 
 
 def connect_to_supabase():
-    supabase_url = os.environ.get("SUPABASE_URL")
-    supabase_key = os.environ.get("SERVICE_ROLE_KEY")
+    SUPABASE_URL = "http://localhost:8000"
+    SERVICE_ROLE_KEY = os.getenv("SERVICE_ROLE_KEY")
 
-    if not all([supabase_url, supabase_key]):
+    if not all([SERVICE_ROLE_KEY]):
         raise ValueError(
-            "Les variables d'environnement SUPABASE_URL et SERVICE_ROLE_KEY doivent être définies."
+            "La variable d'environnement SERVICE_ROLE_KEY doit être définie."
         )
 
-    supabase_url = (
-        f"https://{supabase_url}"
-        if not supabase_url.startswith(("http://", "https://"))
-        else supabase_url
-    )
-
-    return create_client(supabase_url, supabase_key)
+    return create_client(SUPABASE_URL, SERVICE_ROLE_KEY)
 
 
 def initialize_supabase_connection():
@@ -82,7 +79,6 @@ processed_dir = os.path.join(data_dir, "processed")
 data_config = {
     "tables": {
         "movies": os.path.join(processed_dir, "movies.csv"),
-        "links": os.path.join(raw_dir, "links.csv"),
         "users": os.path.join(processed_dir, "user_matrix.csv"),
         "ratings": os.path.join(raw_dir, "ratings.csv"),
     },
@@ -95,6 +91,8 @@ data_config = {
             "rating": "float64",
             "numRatings": "int64",
             "lastRatingTimestamp": "int64",
+            "imdbId": "object",
+            "tmdbId": "object",
             "posterUrl": "object",
         },
         "ratings": {
@@ -103,7 +101,6 @@ data_config = {
             "rating": "float64",
             "timestamp": "int64",
         },
-        "links": {"movieId": "int64", "imdbId": "object", "tmdbId": "object"},
         "users": {
             "userId": "int64",
             "(no genres listed)": "float64",
@@ -140,3 +137,6 @@ for table_name, file_path in data_config["tables"].items():
         load_data(file_path, table_name, supabase, {})
 
 print("Données chargées avec succès dans la base de données Supabase.")
+
+supabase.rpc("reset_all_sequences").execute()
+print("Séquences réinitialisées avec succès.")
