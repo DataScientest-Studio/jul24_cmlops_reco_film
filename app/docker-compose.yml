@@ -2,13 +2,12 @@ services:
   api-predict:
     build:
       context: ..
-      dockerfile: app/api/predict/Dockerfile
-    image: api-predict
+      dockerfile: app/Dockerfile.apipredict
     container_name: api-predict
     ports:
       - "8002:8000"
     volumes:
-      - ./api/predict:/app/predict # TODO remove for production
+      - ./api/predict:/app/src # TODO remove for production
     environment:
       MLFLOW_TRACKING_URI: ${MLFLOW_TRACKING_URI}
     networks:
@@ -16,9 +15,8 @@ services:
 
   streamlit:
     build:
-      context: streamlit
-      dockerfile: Dockerfile
-    image: streamlit
+      context: .
+      dockerfile: Dockerfile.streamlit
     container_name: streamlit
     ports:
       - "8501:8501"

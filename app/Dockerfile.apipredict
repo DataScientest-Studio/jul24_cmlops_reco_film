@@ -5,19 +5,22 @@ WORKDIR /app
 COPY ./app/api/predict/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY ./app/api/predict /app
-COPY ./ml/models /app
+COPY ./app/api/predict /app/src
+COPY ./ml/models/model.pkl /app/model.pkl
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    PYTHONPATH=/app
+  PYTHONUNBUFFERED=1 \
+  PYTHONPATH=/app/src
 
 RUN adduser --disabled-password --gecos "" appuser
+RUN chown -R appuser:appuser /app
+
 USER appuser
 
 EXPOSE 8000
 
-CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# TODO remove hot reloading for production
+CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:8000/health || exit 1
