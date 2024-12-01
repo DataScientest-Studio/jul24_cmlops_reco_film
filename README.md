@@ -1,4 +1,4 @@
- <a name="readme-top"></a>
+<a name="readme-top"></a>
 
 <div align="center">
 
@@ -16,7 +16,6 @@ System of recommendation of movies based on the user's profile and preferences.
 ## ℹ️ About the Project
 
 This project is a starting pack for MLOps projects focused on the subject of "movie recommendation". It provides a structured framework to develop, train, and deploy machine learning models for recommending movies to users. It uses Supabase for the backend, Airflow for the orchestration, MLflow for the tracking, Minio for the storage of the models, Prometheus and Grafana for the monitoring.
-
 
 ## 🏞 Showcase
 
@@ -46,7 +45,7 @@ The project is organized as follows:
 │       └── build-and-push-images.yml       <- GitHub Actions workflow for building and pushing the images.
 │
 ├── airflow
-│   ├── config                           
+│   ├── config
 │   ├── dags
 │   │   ├── scraping_new_movies.py          <- DAG for scraping new movies.
 │   │   └── train_model_dag.py              <- DAG for training the model.
@@ -183,14 +182,15 @@ The project is organized as follows:
 
 Make sure you have the following tools installed:
 Docker, Docker Compose, Python 3.10+, pip, git et make
-   ```bash
-   docker --version
-   docker compose version
-   python --version
-   pip --version
-   git --version
-   make --version
-   ```
+
+```bash
+docker --version
+docker compose version
+python --version
+pip --version
+git --version
+make --version
+```
 
 To set up the project for local development, from the root of the repository follow the steps below:
 
@@ -203,6 +203,7 @@ To set up the project for local development, from the root of the repository fol
 4. Run the `make start` command.
 
 5. Setup access and the bucket for MLFlow:
+
    - Access MinIO console at `localhost:9001` and sign in with root credentials from `.env`
    - Create access key and save the generated keys
    - Create a bucket named `mlflow`
@@ -218,8 +219,8 @@ To set up the project for local development, from the root of the repository fol
    - Add the token (read and write) for the Docker Hub registry as a secret with the name `DOCKERHUB_TOKEN`.
    - Add the username for the Docker Hub registry as a secret with the name `DOCKERHUB_USERNAME`.
 
-
 **Local access to the Services**:
+
 - Supabase: [http://localhost:8000](http://localhost:8000)
 - Airflow: [http://localhost:8080](http://localhost:8080)
 - Streamlit: [http://localhost:8501](http://localhost:8501)
@@ -232,23 +233,28 @@ To set up the project for local development, from the root of the repository fol
 ## 🎉 From here have fun!
 
 #### First recommendations
+
 You can open the Streamlit app, create an account and have your first recommendations!
 
 In order for the app to work you need to use an email with a number just before the @ symbol (ex: `user1@example.com`, `user20@example.com`, etc.). It'll allow you to have an existing profil linked to your account.
 
 #### Run the DAGs
+
 You can run the DAGs in Airflow to scrape new movies and train the model.
 
 #### Analyse the model in MLFlow
+
 You can explore the artefacts, metrics and logs of the model in MLFlow if you runned the training DAG.
 
 #### Explore Prometheus and Grafana
+
 You can explore the metrics in Grafana's dashboard.
 
 #### Explore Supabase
+
 You can explore the database in Supabase's dashboard.
 
-## 👨🏻‍ About the Authors
+## 🧑‍💻 About the Authors
 
 **Sarah Hemmel**
 
@@ -260,8 +266,8 @@ You can explore the database in Supabase's dashboard.
 
 This project is licensed under the [MIT License](https://opensource.org/licenses/MIT).
 
-
 <p align="right"><a href="#readme-top">Top ⬆️</a></p>
 
 ---
+
  <div align="center">Built with ❤️</div>
