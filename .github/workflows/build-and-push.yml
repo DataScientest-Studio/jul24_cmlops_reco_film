@@ -27,7 +27,7 @@ jobs:
         uses: docker/setup-buildx-action@v2
 
       - name: Build and push API image
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v5
         with:
           context: .
           file: ./app/Dockerfile.apipredict
@@ -38,10 +38,10 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/api-predict:${{ github.ref_name }}
 
       - name: Build and push Streamlit image
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v5
         with:
           context: ./app
-          file: Dockerfile.streamlit
+          file: ./app/Dockerfile.streamlit
           push: true
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/streamlit:latest
