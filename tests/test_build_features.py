@@ -1,81 +1,42 @@
-
-import pytest
+import unittest
 import pandas as pd
-import numpy as np
+import importlib.util
+import sys
 import os
-from ml.src.features.build_features import (
-    bayesienne_mean,
-    preprocessing_ratings,
-    preprocessing_movies,
-    preprocessing_links
-)
 
-@pytest.fixture
-def sample_ratings_df():
-    return pd.DataFrame({
-        'userId': [1, 1, 2, 2],
-        'movieId': [1, 2, 1, 2],
-        'rating': [4.0, 3.0, 5.0, 4.0],
-        'timestamp': [1000000, 1000001, 1000002, 1000003]
-    })
+# Définir le chemin du fichier à tester
+module_file_path = '/home/antoine/jul24_cmlops_reco_film/kubernetes/airflow/order/docker/prod/python_transform/build_features.py'
 
-@pytest.fixture
-def sample_movies_df():
-    return pd.DataFrame({
-        'movieId': [1, 2],
-        'title': ['Movie 1 (2020)', 'Movie 2 (2019)'],
-        'genres': ['Action|Adventure', 'Comedy|Drama']
-    })
+# Charger le module
+spec = importlib.util.spec_from_file_location("build_features", module_file_path)
+build_features = importlib.util.module_from_spec(spec)
+sys.modules["build_features"] = build_features
+spec.loader.exec_module(build_features)
 
-@pytest.fixture
-def sample_links_df():
-    return pd.DataFrame({
-        'movieId': [1, 2],
-        'imdbId': [111, 222],
-        'tmdbId': [123.0, np.nan]
-    })
 
-def test_bayesienne_mean():
-    series = pd.Series([4.0, 3.0, 5.0])
-    M = 4.0  # moyenne globale
-    C = 3.0  # nombre moyen de votes
-    result = bayesienne_mean(series, M, C)
-    assert isinstance(result, float)
-    assert 3.0 <= result <= 5.0
 
-def test_preprocessing_ratings(sample_ratings_df, tmp_path):
-    # Créer un fichier temporaire pour les tests
-    temp_file = tmp_path / "ratings.csv"
-    sample_ratings_df.to_csv(temp_file, index=False)
+class TestDataProcessing(unittest.TestCase):
 
-    # Tester la fonction
-    result = preprocessing_ratings(str(temp_file))
+    def setUp(self):
+        self.raw_data_relative_path = "app/data/to_ingest/bronze"
+        self.data_directory = "app/data/to_ingest/silver"
 
-    assert isinstance(result, pd.DataFrame)
-    assert 'bayesian_mean' in result.columns
-    assert len(result) == len(sample_ratings_df)
+    def test_download_and_save_file(self):
+        url = "https://mlops-project-db.s3.eu-west-1.amazonaws.com/movie_recommandation/"
+        build_features.download_and_save_file(url, self.raw_data_relative_path)
+        self.assertTrue(os.path.exists(os.path.join(self.raw_data_relative_path, 'ratings.csv')))
+        self.assertTrue(os.path.exists(os.path.join(self.raw_data_relative_path, 'movies.csv')))
+        self.assertTrue(os.path.exists(os.path.join(self.raw_data_relative_path, 'links.csv')))
 
-def test_preprocessing_movies(sample_movies_df, tmp_path):
-    # Créer un fichier temporaire pour les tests
-    temp_file = tmp_path / "movies.csv"
-    sample_movies_df.to_csv(temp_file, index=False)
+    def test_load_data(self):
+        dfs = build_features.load_data(self.raw_data_relative_path)
+        self.assertIsInstance(dfs[0], pd.DataFrame)  # Vérifie que c'est un DataFrame
+        self.assertIsInstance(dfs[1], pd.DataFrame)  # Vérifie que c'est un DataFrame
+        self.assertIsInstance(dfs[2], pd.DataFrame)  # Vérifie que c'est un DataFrame
 
-    # Tester la fonction
-    result = preprocessing_movies(str(temp_file))
+    def test_create_users(self):
+        users_df = build_features.create_users()
+        self.assertEqual(len(users_df), 500)  # Vérifie que 500 utilisateurs sont créés
 
-    assert isinstance(result, pd.DataFrame)
-    assert 'year' in result.columns
-    assert result['genres'].iloc[0] == 'Action, Adventure'
-    assert result['year'].iloc[0] == '2020'
-
-def test_preprocessing_links(sample_links_df, tmp_path):
-    # Créer un fichier temporaire pour les tests
-    temp_file = tmp_path / "links.csv"
-    sample_links_df.to_csv(temp_file, index=False)
-
-    # Tester la fonction
-    result = preprocessing_links(str(temp_file))
-
-    assert isinstance(result, pd.DataFrame)
-    assert result['tmdbId'].dtype == 'int64'
-    assert result['tmdbId'].iloc[1] == 0  # Vérifier que la valeur NaN a été remplacée par 0
+if __name__ == "__main__":
+    unittest.main()

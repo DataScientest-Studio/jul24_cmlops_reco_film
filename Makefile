@@ -1,7 +1,7 @@
 NAMESPACE1 = reco-movies
 NAMESPACE2 = airflow
 
-.PHONY: help setup1 setup2 start stop down restart logs-supabase logs-airflow logs-api logs-fastapi clean network all namespace pv secrets configmaps deployments services ingress clean-kube-reco clean-kube-airflow apply-configmap load-data-minikube install-airflow pv-airflow airflow reco
+.PHONY: help setup1 setup2 start stop down restart logs-supabase logs-airflow logs-api logs-fastapi clean network all namespace pv secrets configmaps deployments services ingress clean-kube-reco clean-kube-airflow apply-configmap start-minikube start-airflow pv-airflow reco
 
 # Help command to list all available targets
 help:
@@ -114,52 +114,29 @@ network:
 ###### MAKEFILE KUBERNETES
 all: namespace install-airflow pv-airflow pv secrets configmaps deployments services ingress
 
+start-minikube:
+	minikube start --driver=docker --memory=8192 --cpus=4
+
+install-helm:
+	curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+	chmod 700 get_helm.sh
+	./get_helm.sh
+
 # Installation de helm Airflow
-install-airflow:
+start-airflow:
 	sudo apt-get update
 	helm repo add apache-airflow https://airflow.apache.org
 	helm upgrade --install airflow apache-airflow/airflow --namespace airflow --create-namespace -f kubernetes/airflow/my_values.yml
-	kubectl apply -f kubernetes/airflow/airflow-local-dags-folder-pv.yml -n Airflow
-	kubectl apply -f kubernetes/airflow/airflow-local-dags-folder-pvc.yml -n airflow
-	kubectl apply -f kubernetes/airflow/airflow-local-logs-folder-pv.yml -n airflow
-	kubectl apply -f kubernetes/airflow/airflow-local-logs-folder-pvc.yml -n airflow
-	kubectl apply -f kubernetes/airflow/order/order-data-folder-pv.yaml
-	kubectl apply -f kubernetes/airflow/order/order-data-folder-pvc.yaml
-	kubectl apply -f kubernetes/secrets/airflow-secrets.yaml
-	kubectl apply -f kubernetes/airflow/order/python-transform-job.yaml -n airflow
-	kubectl apply -f kubernetes/airflow/order/python-load-job.yaml -n airflow
+	kubectl apply -f kubernetes/storageclass/storageclass.yaml -n airflow
+	kubectl apply -f kubernetes/persistent-volumes/airflow-local-dags-folder.yml -n airflow
+	kubectl apply -f kubernetes/persistent-volumes/airflow-local-logs-folder.yml -n airflow
+	kubectl apply -f kubernetes/secrets/airflow-secrets.yaml -n airflow
 
-
-delete-airflow-statefulsets:
-	kubectl delete statefulset -n airflow airflow-triggerer || true
-	kubectl delete statefulset -n airflow airflow-worker || true
-
-pv-airflow:
-	kubectl apply -f kubernetes/airflow/airflow-local-dags-folder-pv.yml -n airflow --validate=false
-	kubectl apply -f kubernetes/airflow/airflow-local-dags-folder-pvc.yml -n airflow  --validate=false
-	kubectl apply -f kubernetes/airflow/airflow-local-logs-folder-pv.yml -n airflow --validate=false
-	kubectl apply -f kubernetes/airflow/airflow-local-logs-folder-pvc.yml -n airflow --validate=false
-	kubectl apply -f kubernetes/airflow/order/order-data-folder-pv.yaml
-	kubectl apply -f kubernetes/airflow/order/order-data-folder-pvc.yaml
 
 delete-pv-airflow:
 	kubectl delete pv airflow-local-dags-folder || true
 	kubectl delete pv airflow-local-logs-folder || true
-	kubectl delete pv order-data-folder || true
 
-airflow: namespace pv-airflow
-	helm -n airflow upgrade --install airflow apache-airflow/airflow -f kubernetes/airflow/my_values.yml
-
-# Chargement des données dans minikube : https://minikube.sigs.k8s.io/docs/handbook/filesync/
-load-data-minikube:
-	mkdir -p ~/.minikube/files/processed_raw
-	mkdir -p ~/.minikube/files/dags
-	mkdir -p ~/.minikube/files/logs
-	cp -r ml/data/processed/* ~/.minikube/files/processed_raw
-	cp -r postgres/init.sql ~/.minikube/files/init.sql
-	cp -r prometheus/prometheus.yml ~/.minikube/files/prometheus.yml
-	cp -r airflow/dags/* ~/.minikube/files/dags
-	minikube start
 
 # Vérifie si kubectl est connecté à un cluster
 check-kube:
