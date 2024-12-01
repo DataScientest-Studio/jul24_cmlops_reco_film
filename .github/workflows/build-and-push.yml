@@ -3,7 +3,7 @@ name: Build and Push Docker Images
 on:
   push:
     tags:
-      - 'v*.*.*'
+      - "v*.*.*"
   release:
     types: [published]
   workflow_dispatch:
@@ -44,4 +44,4 @@ jobs:
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/streamlit:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/streamlit:${{ github.sha }}
-            ${{ secrets.DOCKERHUB_USERNAME }}/streamlit:${{ github.ref_name }} 
+            ${{ secrets.DOCKERHUB_USERNAME }}/streamlit:${{ github.ref_name }}
