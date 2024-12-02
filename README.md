@@ -15,7 +15,9 @@ System of recommendation of movies based on the user's profile and preferences.
 
 ## ℹ️ About the Project
 
-This project is a starting pack for MLOps projects focused on the subject of "movie recommendation". It provides a fully integrated local development environment where all tools and applications are containerized and managed through Docker Compose. The stack includes Supabase for the backend, Airflow for workflow orchestration, MLflow for experiment tracking, Minio for model storage, and Prometheus/Grafana for monitoring - all configured to work together seamlessly in your local environment. This allows you to develop, train, and deploy locally machine learning models for recommending movies with a complete MLOps toolchain running entirely on your machine.
+This project is a starting pack for MLOps projects focused on the subject of "movie recommendation". It provides a **fully integrated local development environment where all tools and applications are containerized and managed through Docker Compose** - all configured to work together seamlessly in your local environment. This allows you to develop, train, and deploy machine learning models for recommending movies with a **complete MLOps toolchain running entirely on your machine**.
+
+If you want to deploy the system in a staging or production environment, you can use the GitHub Actions workflow `build-and-push.yml` to build and push the app images (API and Streamlit) to your Docker Hub registry. This action is triggered manually or automatically when tags are pushed to the repository or when a release is published.
 
 ## 🏞 Showcase
 
@@ -163,8 +165,9 @@ The project is organized as follows:
 - Training a machine learning model to recommend movies.
 - Deploying the model as a REST API.
 - Building an interactive web app to display recommendations.
-- Orchestrating the workflow with Apache Airflow.
-- Monitoring the system with Prometheus and Grafana.
+- Authentication.
+- Orchestrating the workflow.
+- Monitoring the system.
 
 ## 🛠 Stack Tech
 
