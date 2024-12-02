@@ -24,6 +24,7 @@ If you want to deploy the system in a staging or production environment, you can
 <p align="center"><img src="assets/images/dmp_1.png" alt="Main Image"/></p>
 
 <center>
+
 <table>
 <tr>
 <td><a href="assets/images/dmp_s_1.png"><img width="320" height="200" src="assets/images/dmp_s_1.png"></a></td>
@@ -34,6 +35,7 @@ If you want to deploy the system in a staging or production environment, you can
 <td><a href="assets/images/dmp_s_4.png"><img width="320" height="200" src="assets/images/dmp_s_4.png"></a></td>
 </tr>
 </table>
+
 </center>
 
 ## Project Organization
