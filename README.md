@@ -15,7 +15,7 @@ System of recommendation of movies based on the user's profile and preferences.
 
 ## ℹ️ About the Project
 
-This project is a starting pack for MLOps projects focused on the subject of "movie recommendation". It provides a structured framework to develop, train, and deploy machine learning models for recommending movies to users. It uses Supabase for the backend, Airflow for the orchestration, MLflow for the tracking, Minio for the storage of the models, Prometheus and Grafana for the monitoring.
+This project is a starting pack for MLOps projects focused on the subject of "movie recommendation". It provides a fully integrated local development environment where all tools and applications are containerized and managed through Docker Compose. The stack includes Supabase for the backend, Airflow for workflow orchestration, MLflow for experiment tracking, Minio for model storage, and Prometheus/Grafana for monitoring - all configured to work together seamlessly in your local environment. This allows you to develop, train, and deploy locally machine learning models for recommending movies with a complete MLOps toolchain running entirely on your machine.
 
 ## 🏞 Showcase
 

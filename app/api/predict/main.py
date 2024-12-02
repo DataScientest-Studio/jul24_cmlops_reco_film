@@ -30,29 +30,20 @@ app.mount("/metrics", metrics_app)
 model = None
 model_infos = None
 
+MLFLOW_URI = os.getenv("MLFLOW_TRACKING_URI", "http://tracking_server:5000")
 
-def load_recommender_model():
+
+def load_model_from_mlflow():
+    print(f"Tentative de connexion à MLflow sur : {MLFLOW_URI}")
+
+    mlflow.set_tracking_uri(MLFLOW_URI)
+
     try:
-        # Essayer d'abord MLflow
-        mlflow_uri = os.getenv("MLFLOW_TRACKING_URI", "http://tracking_server:5000")
-        print(f"Tentative de connexion à MLflow sur : {mlflow_uri}")
+        response = requests.get(MLFLOW_URI, timeout=5)
+        response.raise_for_status()
+        mlflow.search_runs()
+        print("Connexion à MLflow réussie")
 
-        mlflow.set_tracking_uri(mlflow_uri)
-        print("URI MLflow configuré")
-
-        # Vérifier la connexion à MLflow avec un délai d'attente
-        try:
-            import requests
-            response = requests.get(mlflow_uri, timeout=5)  # Délai d'attente de 5 secondes
-            response.raise_for_status()
-            mlflow.search_runs()
-            print("Connexion à MLflow réussie")
-        except requests.exceptions.RequestException as e:
-            print(f"Erreur de connexion à MLflow: {str(e)}")
-            raise
-
-        # Tenter de charger le modèle
-        print("Tentative de chargement du modèle 'movie_recommender'")
         client = mlflow.tracking.MlflowClient()
         model_champion = client.get_model_version_by_alias(
             name="movie_recommender", alias="champion"
@@ -61,38 +52,42 @@ def load_recommender_model():
         model = mlflow.sklearn.load_model(f"models:/movie_recommender/{model_version}")
         print("Modèle chargé avec succès depuis MLflow")
 
-        MODEL_INFO.info({"model_name": "movie_recommender", "source": "mlflow"})
+        return model, model_version
+    except requests.exceptions.RequestException as e:
+        print(f"Erreur de connexion à MLflow: {str(e)}")
+        raise
 
-        model_infos = {
-            "model_name": "movie_recommender",
-            "model_version": model_version,
-            "source": "mlflow",
-        }
 
-        return model, model_infos
+def load_model_locally():
+    print("Tentative de chargement du modèle local")
 
+    try:
+        with open("model.pkl", "rb") as f:
+            model = pickle.load(f)
+        print("Modèle local chargé avec succès")
+        return model, "local"
     except Exception as e:
-        print("Tentative de chargement du modèle local de secours")
+        print(f"Erreur lors du chargement du modèle local: {str(e)}")
+        raise
 
-        try:
-            # Charger le modèle local
-            with open("model.pkl", "rb") as f:
-                model = pickle.load(f)
-            print("Modèle local chargé avec succès")
 
-            MODEL_INFO.info({"model_name": "movie_recommender", "source": "local"})
+def load_recommender_model():
+    try:
+        model, model_version = load_model_from_mlflow()
+        source = "mlflow"
+    except Exception:
+        model, model_version = load_model_locally()
+        source = "local"
 
-            model_infos = {
-                "model_name": "movie_recommender",
-                "model_version": "local",
-                "source": "local",
-            }
+    model_infos = {
+        "model_name": "movie_recommender",
+        "model_version": model_version,
+        "source": source,
+    }
 
-            return model, model_infos
+    MODEL_INFO.info(model_infos)
 
-        except Exception as e:
-            print(f"Erreur lors du chargement du modèle local: {str(e)}")
-            raise
+    return model, model_infos
 
 
 def make_predictions(genres, model):
