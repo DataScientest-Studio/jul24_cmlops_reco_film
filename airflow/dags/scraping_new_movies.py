@@ -24,8 +24,6 @@ def genres_request(task_instance):
         "Authorization": f"Bearer {TMDB_API_TOKEN}",
     }
 
-    print(TMDB_API_TOKEN)
-
     response = requests.get(url, headers=headers)
 
     if response.status_code == 200:
