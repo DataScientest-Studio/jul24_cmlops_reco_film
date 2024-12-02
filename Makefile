@@ -31,7 +31,7 @@ setup1:
 
 # Setup: Build all services and load data
 setup2: network
-	cd supabase && docker compose pull
+	cd supabase && docker compose --env-file ../.env pull
 	cd supabase && docker compose --env-file ../.env up -d
 	cd airflow && docker compose --env-file ../.env up airflow-init
 	sleep 10 && python ml/src/data/load_data_in_db.py
