@@ -7,12 +7,12 @@ spec:
     storage: 2Gi # Capacité du PV
   accessModes:
     - ReadWriteOnce # Mode d'accès
-  storageClassName: standard
+  storageClassName: local-path
   claimRef:
     namespace: airflow # Namespace pour le PVC qui utilise ce PV
     name: airflow-local-logs-folder
   hostPath:
-    path: /data/logs_airflow
+    path: "/host/kubernetes/airflow/logs"
 
 ---
 # Persistent Volume Claims
@@ -24,7 +24,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce # Mode d'accès requis pour le PVC
-  storageClassName: standard
+  storageClassName: local-path
   resources:
     requests:
       storage: 2Gi # Capacité demandée par le PVC

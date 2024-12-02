@@ -8,21 +8,18 @@ secret_database = Secret(
   deploy_type="env",
   deploy_target="DATABASE",
   secret="sql-conn",
-  namespace="airflow",
 )
 
 secret_user = Secret(
   deploy_type="env",
   deploy_target="USER",
   secret="sql-conn",
-  namespace="airflow",
 )
 
 secret_password = Secret(
   deploy_type="env",
   deploy_target="PASSWORD",
   secret="sql-conn",
-  namespace="airflow",
 )
 
 with DAG(

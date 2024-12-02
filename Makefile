@@ -115,7 +115,7 @@ network:
 all: namespace install-airflow pv-airflow pv secrets configmaps deployments services ingress
 
 start-minikube:
-	minikube start --driver=docker --memory=8192 --cpus=4
+	minikube start --driver=docker --memory=8192 --cpus=4 --mount --mount-string= "/home/antoine/jul24_cmlops_reco_film/:/host"
 
 install-helm:
 	curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
