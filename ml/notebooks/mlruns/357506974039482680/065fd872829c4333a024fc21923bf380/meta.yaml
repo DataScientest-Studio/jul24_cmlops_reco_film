@@ -1,0 +1,15 @@
+artifact_uri: file:///home/antoine/jul24_cmlops_reco_film/ml/notebooks/mlruns/357506974039482680/065fd872829c4333a024fc21923bf380/artifacts
+end_time: 1733158213697
+entry_point_name: ''
+experiment_id: '357506974039482680'
+lifecycle_stage: active
+run_id: 065fd872829c4333a024fc21923bf380
+run_name: default-params
+run_uuid: 065fd872829c4333a024fc21923bf380
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1733157833329
+status: 3
+tags: []
+user_id: antoine

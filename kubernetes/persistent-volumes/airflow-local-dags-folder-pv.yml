@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: airflow-local-dags-folder-pv
+spec:
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  claimRef:
+    namespace: airflow
+    name: airflow-local-dags-folder-pvc
+  hostPath:
+    path: "/host/kubernetes/airflow/dags"

@@ -1,0 +1,13 @@
+# Persistent Volume Claims
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: airflow-local-logs-folder-pvc
+  namespace: airflow # Namespace où le PVC sera créé
+spec:
+  accessModes:
+    - ReadWriteOnce # Mode d'accès requis pour le PVC
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 2Gi # Capacité demandée par le PVC

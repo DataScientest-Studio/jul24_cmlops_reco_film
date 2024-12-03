@@ -1,12 +1,12 @@
 dags:
   persistence:
     enabled: true
-    existingClaim: airflow-local-dags-folder
+    existingClaim: airflow-local-dags-folder-pvc # PVC existant pour les DAGs
 
 logs:
   persistence:
     enabled: true
-    existingClaim: airflow-local-logs-folder
+    existingClaim: airflow-local-logs-folder-pvc # PVC existant pour les logs
 
 uid: 1000
 gid: 1000
@@ -20,4 +20,4 @@ executor: CeleryKubernetesExecutor
 
 webserverSecretKey: 370562eacc440d7d9a9a1ad86eef576c
 
-AIRFLOW_VAR_MLFLOW_SERVER: "http://mlflow-server.airflow.svc.cluster.local:5000"
+AIRFLOW_VAR_MLFLOW_SERVER: "mlf-ts-mlflow-tracking.mlflow.svc.cluster.local:80"

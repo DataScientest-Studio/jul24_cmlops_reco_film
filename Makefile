@@ -1,5 +1,6 @@
 NAMESPACE1 = reco-movies
 NAMESPACE2 = airflow
+NAMESPACE3 = mlflow
 
 .PHONY: help setup1 setup2 start stop down restart logs-supabase logs-airflow logs-api logs-fastapi clean network all namespace pv secrets configmaps deployments services ingress clean-kube-reco clean-kube-airflow apply-configmap start-minikube start-airflow pv-airflow reco start-mlflow
 
@@ -127,20 +128,22 @@ start-airflow:
 	sudo apt-get update
 	helm repo add apache-airflow https://airflow.apache.org
 	helm upgrade --install airflow apache-airflow/airflow --namespace airflow --create-namespace -f kubernetes/airflow/my_airflow_values.yml
-	kubectl apply -f kubernetes/storageclass/storageclass.yaml -n airflow
-	kubectl apply -f kubernetes/persistent-volumes/airflow-local-dags-folder.yml -n airflow
-	kubectl apply -f kubernetes/persistent-volumes/airflow-local-logs-folder.yml -n airflow
-	kubectl apply -f kubernetes/persistent-volumes/mlfow_storage.yml
-	kubectl apply -f kubernetes/secrets/airflow-secrets.yaml -n airflow
-	kubectl apply -f kubernetes/configmaps/airflow_configmaps.yml -n airflow
-	kubectl apply -f kubernetes/deployments/pgadmin-deployment.yml -n airflow
-	kubectl apply -f kubernetes/services/pgadmin_service.yml -n airflow
+	kubectl apply -f kubernetes/persistent-volumes/airflow-local-dags-folder-pv.yml
+	kubectl apply -f kubernetes/persistent-volumes/airflow-local-dags-folder-pvc.yml
+	kubectl apply -f kubernetes/persistent-volumes/airflow-local-logs-folder-pv.yml
+	kubectl apply -f kubernetes/persistent-volumes/airflow-local-logs-folder-pvc.yml
+	kubectl apply -f kubernetes/persistent-volumes/mlfow-storage-pv.yml
+	kubectl apply -f kubernetes/persistent-volumes/mlfow-storage-pvc.yml
+	kubectl apply -f kubernetes/secrets/airflow-secrets.yaml
+	kubectl apply -f kubernetes/configmaps/airflow-configmaps.yml
+	kubectl apply -f kubernetes/deployments/pgadmin-deployment.yml
+	kubectl apply -f kubernetes/services/pgadmin-service.yml
 
 start-mlflow:
 	helm repo add bitnami https://charts.bitnami.com/bitnami
 	helm repo update
 	helm install mlf-ts bitnami/mlflow --namespace mlflow --create-namespace
-	kubectl apply -f kubernetes/services/mlflow_service.yml -n mlflow
+	kubectl apply -f kubernetes/services/mlflow-service.yml
 
 
 delete-pv-airflow:
@@ -194,6 +197,9 @@ ingress: check-kube
 clean-kube-reco: check-kube
 	kubectl delete namespace $(NAMESPACE1)
 
-
 clean-kube-airflow: check-kube
 	kubectl delete namespace $(NAMESPACE2)
+
+
+clean-kube-mlflow: check-kube
+	kubectl delete namespace $(NAMESPACE3)
