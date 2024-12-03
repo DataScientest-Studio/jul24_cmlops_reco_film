@@ -173,7 +173,7 @@ def challenging_champion_task(**context):
 
     challenger = challengers[0]
 
-    challenger_rmse = mlflow.get_run(run_id=run_id).data.metrics.get(
+    challenger_av_d = mlflow.get_run(run_id=run_id).data.metrics.get(
         "average_neighbor_distance"
     )
 
@@ -185,11 +185,11 @@ def challenging_champion_task(**context):
         champion = None
 
     if champion:
-        champion_rmse = mlflow.get_run(run_id=champion.run_id).data.metrics.get(
+        champion_av_d = mlflow.get_run(run_id=champion.run_id).data.metrics.get(
             "average_neighbor_distance"
         )
 
-        if challenger_rmse <= champion_rmse:
+        if challenger_av_d <= champion_av_d:
             client.set_registered_model_alias(
                 name="movie_recommender", alias="champion", version=challenger.version
             )
@@ -200,8 +200,8 @@ def challenging_champion_task(**context):
             print(
                 f"Le challenger {challenger.version} est moins performant que le champion {champion.version}. Le champion reste champion."
             )
-        print(f"Average neighbor distance champion : {champion_rmse}")
-        print(f"Average neighbor distance challenger : {challenger_rmse}")
+        print(f"Average neighbor distance champion : {champion_av_d}")
+        print(f"Average neighbor distance challenger : {challenger_av_d}")
     else:
         print("Aucun champion trouvé")
         # S'il n'y a pas de champion, le challenger devient automatiquement le champion
