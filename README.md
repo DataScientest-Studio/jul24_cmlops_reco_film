@@ -27,12 +27,12 @@ If you want to deploy the system in a staging or production environment, you can
 
 <table>
 <tr>
-<td><a href="assets/images/dmp_s_1.png"><img width="320" height="200" src="assets/images/dmp_s_1.png"></a></td>
-<td><a href="assets/images/dmp_s_2.png"><img width="320" height="200" src="assets/images/dmp_s_2.png"></a></td>
+<td><a href="assets/images/dmp_s_1.png"><img width="320" src="assets/images/dmp_s_1.png"></a></td>
+<td><a href="assets/images/dmp_s_2.png"><img width="320" src="assets/images/dmp_s_2.png"></a></td>
 </tr>
 <tr>
-<td><a href="assets/images/dmp_s_3.jpeg"><img width="320" height="200" src="assets/images/dmp_s_3.jpeg"></a></td>
-<td><a href="assets/images/dmp_s_4.png"><img width="320" height="200" src="assets/images/dmp_s_4.png"></a></td>
+<td><a href="assets/images/dmp_s_3.jpeg"><img width="320" src="assets/images/dmp_s_3.jpeg"></a></td>
+<td><a href="assets/images/dmp_s_4.png"><img width="320" src="assets/images/dmp_s_4.png"></a></td>
 </tr>
 </table>
 
@@ -182,6 +182,8 @@ The project is organized as follows:
 - **FastAPI**: For building the REST API for the movie recommendation service.
 - **Prometheus**: For monitoring and alerting.
 - **Grafana**: For visualizing metrics.
+- **scikit-learn**: For building and training machine learning models.
+- **GitHub Actions**: For continuous integration and deployment workflows.
 
 ## ⚙ ️Setup
 
