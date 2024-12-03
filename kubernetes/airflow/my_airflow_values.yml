@@ -19,3 +19,5 @@ scheduler:
 executor: CeleryKubernetesExecutor
 
 webserverSecretKey: 370562eacc440d7d9a9a1ad86eef576c
+
+AIRFLOW_VAR_MLFLOW_SERVER: "http://mlflow-server.airflow.svc.cluster.local:5000"

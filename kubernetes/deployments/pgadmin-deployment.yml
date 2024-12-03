@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: pgadmin
-  namespace: reco-movies
+  namespace: airflow
 spec:
   replicas: 1
   selector:
@@ -15,27 +15,11 @@ spec:
     spec:
       containers:
         - name: pgadmin
-          image: dpage/pgadmin4
-          env:
-            - name: PGADMIN_DEFAULT_EMAIL
-              value: "admin@admin.com"
-            - name: PGADMIN_DEFAULT_PASSWORD
-              value: "admin"
-            - name: SCRIPT_NAME
-              value: ""
-            - name: PGADMIN_CONFIG_ENHANCED_COOKIE_PROTECTION
-              value: "False"
-            - name: PGADMIN_CONFIG_LOGIN_BANNER
-              value: "False"
-            - name: PGADMIN_SERVER_JSON_FILE
-              value: "/pgadmin4/servers.json"
-          volumeMounts:
-            - mountPath: /var/lib/pgadmin
-              name: pgadmin-data
-          securityContext:
-            runAsUser: 5050
+          image: dpage/pgadmin4:latest
           ports:
             - containerPort: 80
-      volumes:
-        - name: pgadmin-data
-          emptyDir: {}
+          env:
+            - name: PGADMIN_DEFAULT_EMAIL
+              value: "admin@pgadmin.org" # Email par défaut pour se connecter
+            - name: PGADMIN_DEFAULT_PASSWORD
+              value: "admin" # Mot de passe par défaut pour se connecter

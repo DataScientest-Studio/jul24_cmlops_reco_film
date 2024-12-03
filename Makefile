@@ -1,7 +1,7 @@
 NAMESPACE1 = reco-movies
 NAMESPACE2 = airflow
 
-.PHONY: help setup1 setup2 start stop down restart logs-supabase logs-airflow logs-api logs-fastapi clean network all namespace pv secrets configmaps deployments services ingress clean-kube-reco clean-kube-airflow apply-configmap start-minikube start-airflow pv-airflow reco
+.PHONY: help setup1 setup2 start stop down restart logs-supabase logs-airflow logs-api logs-fastapi clean network all namespace pv secrets configmaps deployments services ingress clean-kube-reco clean-kube-airflow apply-configmap start-minikube start-airflow pv-airflow reco start-mlflow
 
 # Help command to list all available targets
 help:
@@ -126,11 +126,21 @@ install-helm:
 start-airflow:
 	sudo apt-get update
 	helm repo add apache-airflow https://airflow.apache.org
-	helm upgrade --install airflow apache-airflow/airflow --namespace airflow --create-namespace -f kubernetes/airflow/my_values.yml
+	helm upgrade --install airflow apache-airflow/airflow --namespace airflow --create-namespace -f kubernetes/airflow/my_airflow_values.yml
 	kubectl apply -f kubernetes/storageclass/storageclass.yaml -n airflow
 	kubectl apply -f kubernetes/persistent-volumes/airflow-local-dags-folder.yml -n airflow
 	kubectl apply -f kubernetes/persistent-volumes/airflow-local-logs-folder.yml -n airflow
+	kubectl apply -f kubernetes/persistent-volumes/mlfow_storage.yml
 	kubectl apply -f kubernetes/secrets/airflow-secrets.yaml -n airflow
+	kubectl apply -f kubernetes/configmaps/airflow_configmaps.yml -n airflow
+	kubectl apply -f kubernetes/deployments/pgadmin-deployment.yml -n airflow
+	kubectl apply -f kubernetes/services/pgadmin_service.yml -n airflow
+
+start-mlflow:
+	helm repo add bitnami https://charts.bitnami.com/bitnami
+	helm repo update
+	helm install mlf-ts bitnami/mlflow --namespace mlflow --create-namespace
+	kubectl apply -f kubernetes/services/mlflow_service.yml -n mlflow
 
 
 delete-pv-airflow:

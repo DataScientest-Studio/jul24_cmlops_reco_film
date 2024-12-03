@@ -1,12 +1,11 @@
----
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: pgadmin-pvc
-  namespace: reco-movies
+  name: mlflow-models-pvc
+  namespace: airflow
 spec:
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 1Gi
+      storage: 5Gi

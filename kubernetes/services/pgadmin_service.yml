@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: pgadmin-service
+  namespace: airflow
+spec:
+  type: NodePort # Changez en ClusterIP si vous ne voulez pas d'accès externe
+  ports:
+    - port: 80
+      targetPort: 80
+      nodePort: 30000 # Port externe pour accéder à pgAdmin (ajustez si nécessaire)
+  selector:
+    app: pgadmin

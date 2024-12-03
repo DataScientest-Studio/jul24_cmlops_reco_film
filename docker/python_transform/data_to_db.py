@@ -6,7 +6,7 @@ from sqlalchemy.dialects.postgresql import insert
 
 # Définition des tables SQLAlchemy pour les opérations d'upsert
 table_movies = table('movies',
-    column('movieId'),
+    column('movieid'),
     column('title'),
     column('genres'),
     column('year')
@@ -14,8 +14,8 @@ table_movies = table('movies',
 
 table_ratings = table('ratings',
     column('id'),
-    column('userId'),
-    column('movieId'),
+    column('userid'),
+    column('movieid'),
     column('rating'),
     column('timestamp'),
     column('bayesian_mean')
@@ -23,13 +23,13 @@ table_ratings = table('ratings',
 
 table_links = table('links',
     column('id'),
-    column('movieId'),
-    column('imdbId'),
-    column('tmdbId')
+    column('movieid'),
+    column('imdbid'),
+    column('tmdbid')
 )
 
 table_users = table('users',
-    column('userId'),
+    column('userid'),
     column('username'),
     column('email'),
     column('hached_password')

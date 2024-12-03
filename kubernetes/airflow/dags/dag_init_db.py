@@ -41,7 +41,7 @@ def create_conn(**kwargs):
 postgres_conn_conf = get_postgres_conn_conf()
 
 with DAG(
-    dag_id='init_order',
+    dag_id='init_db',
     tags=['order', 'antoine'],
     default_args={
         'owner': 'airflow',

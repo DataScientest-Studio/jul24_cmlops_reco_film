@@ -2,7 +2,8 @@ numpy==1.24.4
 pandas==1.5.3
 bcrypt==3.2.0
 passlib
-psycopg2==2.9.9
+psycopg2-binary==2.9.9
 python-dateutil==2.9.0.post0
 SQLAlchemy==2.0.30
 typing_extensions==4.11.0
+requests==2.31.0
