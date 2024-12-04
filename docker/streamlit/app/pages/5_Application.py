@@ -23,7 +23,7 @@ headers = {
 token = st.session_state.get('token')
 
 response = requests.get(
-    "http://fastapi:8000/",
+    "http://fastapi/",
     json={"token": token},
     headers=headers
 )
@@ -40,7 +40,7 @@ st.write("Voici vos 3 films les mieux notés :")
 try:
     payload = {"userId": user_id}
     response = requests.post(
-        "http://fastapi:8000/predict/best_user_movies",
+        "http://fastapi/predict/best_user_movies",
         json=payload,
         headers=headers
     )
@@ -62,7 +62,7 @@ st.write("Voici une recommandation de films au regard de vos notations :")
 try:
     payload = {"userId": user_id}
     response = requests.post(
-        "http://fastapi:8000/predict/identified_user",
+        "http://fastapi/predict/identified_user",
         json=payload,
         headers=headers
     )
@@ -91,7 +91,7 @@ movie_name = st.text_input("Entrez le nom d'un film que vous avez aimé", "Incep
 if st.button("Rechercher"):
     payload = {"userId": user_id, "movie_title": movie_name}
     response = requests.post(
-        "http://fastapi:8000/predict/similar_movies",
+        "http://fastapi/predict/similar_movies",
         json=payload,
         headers=headers
     )

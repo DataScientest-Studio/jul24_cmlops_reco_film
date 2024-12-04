@@ -3,7 +3,6 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from starlette import status
-from database import get_db_connection
 from passlib.context import CryptContext
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from jose import jwt, JWTError
@@ -14,10 +13,14 @@ import time
 import re
 import psycopg2
 import logging
+from kubernetes import client, config
 
 # Configurer le logger
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Charger la configuration Kubernetes
+config.load_incluster_config()
 
 # Création d'un routeur pour gérer les routes d'authentification
 router = APIRouter(
@@ -108,6 +111,26 @@ username_validation_counter = Counter(
     registry=collector
 )
 
+def load_config():
+    """Charge la configuration de la base de données à partir des variables d'environnement."""
+    return {
+        'host': os.getenv('AIRFLOW_POSTGRESQL_SERVICE_HOST'),
+        'database': os.getenv('DATABASE'),
+        'user': os.getenv('USER'),
+        'password': os.getenv('PASSWORD')
+    }
+
+def connect(config):
+    """Connecte au serveur PostgreSQL et retourne la connexion."""
+    try:
+        conn = psycopg2.connect(**config)
+        print('Connected to the PostgreSQL server.')
+        return conn
+    except (psycopg2.DatabaseError, Exception) as error:
+        print(f"Connection error: {error}")
+        return None
+
+
 # Fonction pour valider le nom d'utilisateur
 def validate_username(username):
     if re.match("^[A-Za-z0-9_]+$", username) is None:
@@ -162,8 +185,11 @@ async def create_user(create_user_request: CreateUserRequest):
         logger.error(f"Erreur validation mot de passe: {password_error}")
         raise HTTPException(status_code=400, detail=password_error)
 
-    try:
-        with get_db_connection() as conn:
+    config = load_config()
+    conn = connect(config)
+
+    if conn is not None:
+        try:
             with conn.cursor() as cur:
                 cur.execute("SELECT email FROM users WHERE email = %s", (create_user_request.email,))
                 if cur.fetchone() is not None:
@@ -174,14 +200,22 @@ async def create_user(create_user_request: CreateUserRequest):
 
                 # Créer le nouvel utilisateur
                 hached_password = bcrypt_context.hash(create_user_request.password)
-                cur.execute("INSERT INTO users (username, email, hached_password) VALUES (%s, %s, %s)", (create_user_request.username, create_user_request.email, hached_password,))
+                cur.execute("INSERT INTO users (username, email, hached_password) VALUES (%s, %s, %s)",
+                            (create_user_request.username, create_user_request.email, hached_password,))
                 conn.commit()
                 logger.info("Utilisateur créé avec succès")
 
-    except psycopg2.Error as e:
-        error_counter.labels(error_type='database_error').inc()
-        logger.error(f"Erreur base de données: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+        except psycopg2.Error as e:
+            error_counter.labels(error_type='database_error').inc()
+            logger.error(f"Erreur base de données: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+        finally:
+            conn.close()  # Assurez-vous de fermer la connexion après utilisation
+
+    else:
+        logger.error("Échec de la connexion à la base de données.")
+        raise HTTPException(status_code=500, detail="Database connection failed.")
 
     duration = time.time() - start_time
     user_creation_duration_histogram.labels(status_code='201').observe(duration)
@@ -218,8 +252,11 @@ async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm,
     return response
 
 async def authenticate_user(email: str, password: str):
-    try:
-        with get_db_connection() as conn:
+    config = load_config()
+    conn = connect(config)
+
+    if conn is not None:
+        try:
             with conn.cursor() as cur:
                 cur.execute(
                     "SELECT userid, username, email, hached_password FROM users WHERE email = %s",
@@ -247,11 +284,16 @@ async def authenticate_user(email: str, password: str):
                 logger.info(f"Valeur de userId dans authenticate_user: {user_data['userId']}")
                 return user_data
 
-    except psycopg2.Error as e:
-        error_counter.labels(error_type='database_error').inc()
-        logger.error(f"Erreur base de données: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+        except psycopg2.Error as e:
+            error_counter.labels(error_type='database_error').inc()
+            logger.error(f"Erreur base de données: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
+        finally:
+            conn.close()  # Assurez-vous de fermer la connexion après utilisation
+    else:
+        logger.error("Échec de la connexion à la base de données.")
+        raise HTTPException(status_code=500, detail="Database connection failed.")
 
 # Fonction pour créer un token d'accès
 def create_access_token(email: str, user_id: int, expires_delta: timedelta):
@@ -266,7 +308,10 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_bearer)]):
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])  # Décode le token
         email: str = payload.get('sub')  # Récupère le nom d'utilisateur
         user_id: int = payload.get('id')  # Récupère l'ID de l'utilisateur
-        with get_db_connection() as conn:
+        config = load_config()
+        conn = connect(config)
+
+        if conn is not None:
             with conn.cursor() as cur:
                 cur.execute(
                     "SELECT userid, username FROM users WHERE userid = %s",
