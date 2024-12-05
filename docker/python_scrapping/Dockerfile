@@ -4,9 +4,7 @@ RUN apt-get update -y && apt-get install -y libpq-dev gcc
 
 WORKDIR /app
 
-RUN mkdir -p data/to_ingest/silver
-
-COPY ./main.py ./main.py
+COPY ./scrapping.py ./scrapping.py
 
 COPY ./requirements.txt ./requirements.txt
 
