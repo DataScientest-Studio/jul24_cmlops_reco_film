@@ -8,6 +8,11 @@ logs:
     enabled: true
     existingClaim: airflow-local-logs-folder-pvc # PVC existant pour les logs
 
+models:
+  persistence:
+    enabled: true
+    existingClaim: models-pvc # PVC existant pour les modèles
+
 uid: 1000
 gid: 1000
 

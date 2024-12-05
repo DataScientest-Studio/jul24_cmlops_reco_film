@@ -129,10 +129,10 @@ start-airflow:
 	helm repo add apache-airflow https://airflow.apache.org
 	helm upgrade --install airflow apache-airflow/airflow --namespace airflow --create-namespace -f kubernetes/airflow/my_airflow_values.yml
 	kubectl apply -f kubernetes/persistent-volumes/airflow-local-dags-folder-pv.yml
-	kubectl apply -f kubernetes/persistent-volumes/airflow-local-dags-folder-pvc.yml
 	kubectl apply -f kubernetes/persistent-volumes/airflow-local-logs-folder-pv.yml
-	kubectl apply -f kubernetes/persistent-volumes/airflow-local-logs-folder-pvc.yml
 	kubectl apply -f kubernetes/persistent-volumes/mlfow-storage-pv.yml
+	kubectl apply -f kubernetes/persistent-volumes/airflow-local-dags-folder-pvc.yml
+	kubectl apply -f kubernetes/persistent-volumes/airflow-local-logs-folder-pvc.yml
 	kubectl apply -f kubernetes/persistent-volumes/mlfow-storage-pvc.yml
 	kubectl apply -f kubernetes/secrets/airflow-secrets.yaml
 	kubectl apply -f kubernetes/configmaps/airflow-configmaps.yml
