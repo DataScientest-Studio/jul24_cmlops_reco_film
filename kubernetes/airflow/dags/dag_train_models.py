@@ -33,7 +33,7 @@ with DAG(
     secrets= [secret_password],
     volumes=[
         k8s.V1Volume(
-            name="model-storage",
+            name="model-storage-pv",
             persistent_volume_claim=k8s.V1PersistentVolumeClaimVolumeSource(claim_name="model-storage-pvc")
         )
     ],
