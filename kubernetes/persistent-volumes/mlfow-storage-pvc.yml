@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: models-pvc
+  name: model-storage-pvc
   namespace: airflow
 spec:
   accessModes:

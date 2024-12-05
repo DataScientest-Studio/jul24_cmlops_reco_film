@@ -1,4 +1,4 @@
-NAMESPACE1 = reco-movies
+NAMESPACE1 = api
 NAMESPACE2 = airflow
 NAMESPACE3 = mlflow
 
@@ -145,6 +145,12 @@ start-mlflow:
 	helm install mlf-ts bitnami/mlflow --namespace mlflow --create-namespace
 	kubectl apply -f kubernetes/services/mlflow-service.yml
 
+start-api:
+	kubectl create namespace api
+	kubectl apply -f kubernetes/deployments/fastapi-deployment.yml
+	kubectl apply -f kubernetes/deployments/streamlit-deployment.yml
+	kubectl apply -f kubernetes/secrets/api-secrets.yaml
+	kubectl apply -f kubernetes/services/api-service.yml
 
 delete-pv-airflow:
 	kubectl delete pv airflow-local-dags-folder || true
@@ -160,6 +166,15 @@ reco: namespace pv secrets configmaps deployments services ingress
 
 namespace: check-kube
 	kubectl apply -f kubernetes/namespace/namespace.yml --validate=false
+
+change-namespace-api:
+	kubectl config set-context --current --namespace=$(NAMESPACE1)
+
+change-namespace-airflow:
+	kubectl config set-context --current --namespace=$(NAMESPACE2)
+
+change-namespace-mlflow:
+	kubectl config set-context --current --namespace=$(NAMESPACE3)
 
 pv: check-kube
 	kubectl apply -f kubernetes/persistent-volumes/fastapi-persistent-volume.yml --validate=false
@@ -199,7 +214,6 @@ clean-kube-reco: check-kube
 
 clean-kube-airflow: check-kube
 	kubectl delete namespace $(NAMESPACE2)
-
 
 clean-kube-mlflow: check-kube
 	kubectl delete namespace $(NAMESPACE3)

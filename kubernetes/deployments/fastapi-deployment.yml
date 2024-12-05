@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: fastapi
-  namespace: reco-movies
+  namespace: api
 spec:
   replicas: 2
   selector:
@@ -18,38 +18,38 @@ spec:
           image: antoinepela/projet_reco_movies:fastapi-latest
           imagePullPolicy: Always # Force Kubernetes à toujours tirer l'image
           env:
-            - name: POSTGRES_PORT
-              value: "5432"
-            - name: POSTGRES_DB
-              valueFrom:
-                configMapKeyRef:
-                  name: postgres-api-config
-                  key: POSTGRES_DB
-            - name: POSTGRES_USER
-              valueFrom:
-                configMapKeyRef:
-                  name: postgres-api-config
-                  key: POSTGRES_USER
-            - name: POSTGRES_PASSWORD
+            - name: DATABASE
+              value: "postgres"
+            - name: USER
+              value: "postgres"
+            - name: PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: postgres-api-secrets
-                  key: POSTGRES_PASSWORD
-            - name: POSTGRES_HOST
-              value: "postgres-api-service"
+                  name: api-secrets
+                  key: PASSWORD
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: api-secrets
+                  key: SECRET_KEY
+            - name: ALGORITHM
+              valueFrom:
+                secretKeyRef:
+                  name: api-secrets
+                  key: ALGORITHM
+            - name: TMDB_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: api-secrets
+                  key: TMDB_API_TOKEN
             - name: UVICORN_RELOAD
               value: "false"
           ports:
             - containerPort: 8000
           volumeMounts:
-            - name: model-knn-volume
-              mountPath: /app/models/model_KNN.pkl
-            - name: model-svd-volume
-              mountPath: /app/models/model_SVD.pkl
+            - name: model-storage
+              mountPath: /models
       volumes:
-        - name: model-knn-volume
+        - name: model-storage
           persistentVolumeClaim:
-            claimName: pvc-model-knn
-        - name: model-svd-volume
-          persistentVolumeClaim:
-            claimName: pvc-model-svd
+            claimName: model-storage-pvc

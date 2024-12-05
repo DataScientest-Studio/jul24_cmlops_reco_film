@@ -39,7 +39,7 @@ with tabs[0]:
             # Convertir le nom d'utilisateur en minuscules avant l'envoi
             normalized_username = username.lower()
 
-            response = requests.post("http://fastapi:8000/auth/", json={"username": normalized_username, "email": email, "password": password})
+            response = requests.post("http://fastapi/auth/", json={"username": normalized_username, "email": email, "password": password})
             if response.status_code == 201:  # Utilisateur créé avec succès
                 st.success(f"Inscription réussie !")
                 st.balloons()
@@ -61,7 +61,7 @@ with tabs[1]:
         if submitted:
             try:
                 response = requests.post(
-                    "http://fastapi:8000/auth/token",
+                    "http://fastapi/auth/token",
                     data={"username": email, "password": password})
 
                 if response.status_code == 200:

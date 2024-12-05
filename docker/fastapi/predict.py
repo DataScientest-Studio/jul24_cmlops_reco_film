@@ -7,7 +7,6 @@ from scipy.sparse import csr_matrix
 import numpy as np
 from rapidfuzz import process
 from fastapi import APIRouter, HTTPException
-from database import get_db_connection
 from typing import Dict, Any, Optional
 from prometheus_client import Counter, Histogram, CollectorRegistry
 import time
@@ -17,6 +16,7 @@ import psycopg2
 from dotenv import load_dotenv
 import requests
 import logging
+from kubernetes import client, config
 
 # Charger les variables d'environnement à partir du fichier .env
 load_dotenv()
@@ -27,6 +27,20 @@ tmdb_token = os.getenv("TMDB_API_TOKEN")
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Charger la configuration Kubernetes
+config.load_incluster_config()
+
+# Définir le volume et le montage du volume
+volume = client.V1Volume(
+    name="model-storage",
+    persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(claim_name="model-storage-pvc")
+)
+
+volume_mount = client.V1VolumeMount(
+    name="model-storage",
+    mount_path="/models"
+)
+
 # ROUTEUR POUR GERER LES ROUTES PREDICT
 
 router = APIRouter(
@@ -34,9 +48,26 @@ router = APIRouter(
     tags=['predict']    # Tag pour la documentation
 )
 
-
 # ENSEMBLE DES FONCTIONS UTILISEES
 
+def load_config():
+    """Charge la configuration de la base de données à partir des variables d'environnement."""
+    return {
+        'host': os.getenv('AIRFLOW_POSTGRESQL_SERVICE_HOST'),
+        'database': os.getenv('DATABASE'),
+        'user': os.getenv('USER'),
+        'password': os.getenv('PASSWORD')
+    }
+
+def connect(config):
+    """Connecte au serveur PostgreSQL et retourne la connexion."""
+    try:
+        conn = psycopg2.connect(**config)
+        print('Connected to the PostgreSQL server.')
+        return conn
+    except (psycopg2.DatabaseError, Exception) as error:
+        print(f"Connection error: {error}")
+        return None
 
 # Chargement des datasets vai bdd
 def fetch_ratings() -> pd.DataFrame:
@@ -45,14 +76,20 @@ def fetch_ratings() -> pd.DataFrame:
     SELECT userId, movieId, rating
     FROM ratings
     """
-    try:
-        with get_db_connection() as conn:
-            df = pd.read_sql_query(query, conn)
-            print("Enregistrements table ratings récupérés")
-            return df
-    except Exception as e:
-        print(f"Erreur lors de la récupération des enregistrements: {e}")
-        raise
+    config = load_config()
+    conn = connect(config)
+
+    if conn is not None:
+        try:
+            with conn.cursor() as cur:
+                cur.execute(query)
+                df = pd.DataFrame(cur.fetchall(), columns=['userId', 'movieId', 'rating'])
+                print("Enregistrements table ratings récupérés")
+                return df
+
+        except Exception as e:
+            print(f"Erreur lors de la récupération des enregistrements: {e}")
+            raise
 
 def fetch_movies() -> pd.DataFrame:
     """Récupère enregistrements de la table movies et les transforme en DataFrame."""
@@ -60,14 +97,19 @@ def fetch_movies() -> pd.DataFrame:
     SELECT movieId, title, genres
     FROM movies
     """
-    try:
-        with get_db_connection() as conn:
-            df = pd.read_sql_query(query, conn)
-            print("Enregistrements table movies récupérés")
-            return df
-    except Exception as e:
-        print(f"Erreur lors de la récupération des enregistrements: {e}")
-        raise
+    config = load_config()
+    conn = connect(config)
+
+    if conn is not None:
+        try:
+            with conn.cursor() as cur:
+                cur.execute(query)
+                df = pd.DataFrame(cur.fetchall(), columns=['movieId', 'title', 'genres'])
+                print("Enregistrements table movies récupérés")
+                return df
+        except Exception as e:
+            print(f"Erreur lors de la récupération des enregistrements: {e}")
+            raise
 
 def fetch_links() -> pd.DataFrame:
     """Récupère enregistrements de la table movies et les transforme en DataFrame."""
@@ -75,46 +117,29 @@ def fetch_links() -> pd.DataFrame:
     SELECT id, movieId, imdbId, tmdbId
     FROM links
     """
-    try:
-        with get_db_connection() as conn:
-            df = pd.read_sql_query(query, conn)
-            print("Enregistrements table links récupérés")
-            return df
-    except Exception as e:
-        print(f"Erreur lors de la récupération des enregistrements: {e}")
-        raise
-# def read_ratings(ratings_csv: str, data_dir: str = "/app/raw") -> pd.DataFrame:
-#     """Reads the CSV file containing movie ratings."""
-#     data = pd.read_csv(os.path.join(data_dir, ratings_csv))
-#     print("Dataset ratings loaded")
-#     return data
+    config = load_config()
+    conn = connect(config)
 
-
-
-# def read_movies(movies_csv: str, data_dir: str = "/app/raw") -> pd.DataFrame:
-#     """Reads the CSV file containing movie information."""
-#     df = pd.read_csv(os.path.join(data_dir, movies_csv))
-#     print("Dataset movies loaded")
-#     return df
-
-# def read_links(links_csv: str, data_dir: str = "/app/raw") -> pd.DataFrame:
-#     """Reads the CSV file containing movie information."""
-#     df = pd.read_csv(os.path.join(data_dir, links_csv))
-#     print("Dataset links loaded")
-#     return df
-
+    if conn is not None:
+        try:
+            with conn.cursor() as cur:
+                cur.execute(query)
+                df = pd.DataFrame(cur.fetchall(), columns=['id', 'movieId', 'imdbId', 'tmdbId'])
+                print("Enregistrements table links récupérés")
+                return df
+        except Exception as e:
+            print(f"Erreur lors de la récupération des enregistrements: {e}")
+            raise
 
 # Chargement du dernier modèle
-def load_model(pkl_files, directory = "/app/model") :
-    """Charge le modèle à partir d'un répertoire."""
-    # Vérifier si le répertoire existe
-    if not os.path.exists(directory):
-        raise FileNotFoundError(f"Le répertoire {directory} n'existe pas.")
-    # Charger le modèle
-    filepath = os.path.join(directory, pkl_files)
-    with open(filepath, 'rb') as file:
+def load_model(model_name):
+    """Charge le modèle à partir du répertoire monté."""
+    model_path = f"/models/{model_name}"
+    if not os.path.exists(model_path):
+        raise FileNotFoundError(f"Le modèle {model_name} n'existe pas dans {model_path}.")
+    with open(model_path, 'rb') as file:
         model = pickle.load(file)
-        print(f'Modèle chargé depuis {filepath}')
+        print(f'Modèle chargé depuis {model_path}')
     return model
 
 def create_X(df):
@@ -306,15 +331,6 @@ tmdb_request_duration_histogram = Histogram(
 
 # CHARGEMENT DES DONNEES AU DEMARRAGE DE API
 print("DEBUT DES CHARGEMENTS")
-# test de connection à la base de données
-with get_db_connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'")
-                tables = cur.fetchall()
-                # Imprimer les noms des tables
-                print("Tables présentes dans la base de données :")
-                for table in tables:
-                    print(table[0])
 # Chargement de nos dataframe
 ratings = fetch_ratings()
 movies = fetch_movies()
