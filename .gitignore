@@ -1,9 +1,8 @@
 
 *.pkl
+./kubernetes/airflow/logs/
 
-mlflow-data/
 
-supabase/docker/volumes/db/data/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

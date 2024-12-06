@@ -1,12 +1,12 @@
 dags:
   persistence:
     enabled: true
-    existingClaim: airflow-local-dags-folder-pvc # PVC existant pour les DAGs
+    existingClaim: airflow-local-dags-folder
 
 logs:
   persistence:
     enabled: true
-    existingClaim: airflow-local-logs-folder-pvc # PVC existant pour les logs
+    existingClaim: airflow-local-logs-folder
 
 models:
   persistence:

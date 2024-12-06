@@ -13,9 +13,6 @@ RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt
 # Copier les fichiers de l'application dans le conteneur
 COPY ./app /app
 
-# Exposer le port utilisé par Streamlit
-EXPOSE 8501
-
 # Définir le point d'entrée pour exécuter Streamlit
 ENTRYPOINT ["streamlit", "run"]
 
