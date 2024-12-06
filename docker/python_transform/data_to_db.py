@@ -13,7 +13,6 @@ table_movies = table('movies',
 )
 
 table_ratings = table('ratings',
-    column('id'),
     column('userid'),
     column('movieid'),
     column('rating'),
@@ -22,7 +21,6 @@ table_ratings = table('ratings',
 )
 
 table_links = table('links',
-    column('id'),
     column('movieid'),
     column('imdbid'),
     column('tmdbid')

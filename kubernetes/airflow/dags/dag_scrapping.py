@@ -2,7 +2,7 @@ from airflow import DAG
 from airflow.utils.dates import days_ago
 from airflow.providers.cncf.kubernetes.operators.pod import KubernetesPodOperator
 from airflow.kubernetes.secret import Secret
-from airflow.operators.python import PythonOperator
+
 
 # Définition des secrets
 secret_password = Secret(
@@ -46,40 +46,4 @@ with DAG(
         secrets=[secret_password, secret_token],  # Ajout des deux secrets
     )
 
-    # Tâche pour récupérer les genres depuis TMDB
-    get_genres_task = PythonOperator(
-        task_id='get_genres_task',
-        python_callable=genres_request,
-        dag=dag,
-    )
-
-    # Tâche pour scraper IMDb et récupérer les liens
-    scrape_imdb_task = PythonOperator(
-        task_id='scrape_imdb_task',
-        python_callable=scrape_imdb_first_page,
-        dag=dag,
-    )
-
-    # Tâche pour récupérer les infos des films depuis TMDB
-    scrape_infos_task = PythonOperator(
-        task_id='scrape_movies_infos_task',
-        python_callable=api_tmdb_request,
-        op_kwargs={
-            'cleaned_links': '{{ task_instance.xcom_pull(task_ids="scrape_imdb_task") }}',
-            'genres': '{{ task_instance.xcom_pull(task_ids="get_genres_task") }}'
-        },
-        dag=dag,
-    )
-
-    # Tâche pour insérer les données dans la base
-    insert_data_task = PythonOperator(
-        task_id='insert_data_movies_task',
-        python_callable=insert_data_movies,
-        op_kwargs={
-            'api_results': '{{ task_instance.xcom_pull(task_ids="scrape_movies_infos_task") }}',
-        },
-        dag=dag,
-    )
-
-# Définir l'ordre d'exécution des tâches dans le DAG
-get_genres_task >> scrape_imdb_task >> scrape_infos_task >> insert_data_task >> dag_scraping_and_inserting_movies
+dag_scraping_and_inserting_movies

@@ -14,7 +14,7 @@ with DAG(
   tags=['antoine'],
   default_args={
     'owner': 'airflow',
-    'start_date': days_ago(0, minute=1),
+    'start_date': days_ago(1),
     },
   catchup=False
 ) as dag:

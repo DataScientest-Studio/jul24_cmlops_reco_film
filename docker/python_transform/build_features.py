@@ -100,7 +100,8 @@ def preprocessing_ratings(df_ratings) -> pd.DataFrame:
     df_ratings = df_ratings.merge(movies_stats[['bayesian_mean']], on='movieId', how='left')
 
     print("Application de la moyenne bayésienne sur la colonne rating effectuée")
-
+    # Renommer les colonnes
+    df_ratings = df_ratings.rename(columns={'userId': 'userid', 'movieId': 'movieid' })
     return df_ratings
 
 def preprocessing_movies(df_movies) -> pd.DataFrame:
@@ -128,6 +129,8 @@ def preprocessing_movies(df_movies) -> pd.DataFrame:
     # Remplir les valeurs manquantes avec la méthode forward fill
     df_movies.ffill(inplace=True)
 
+    df_movies = df_movies.rename(columns={'movieId': 'movieid'})
+
     return df_movies
 
 def preprocessing_links(df_links) -> pd.DataFrame:
@@ -145,6 +148,9 @@ def preprocessing_links(df_links) -> pd.DataFrame:
     print('Modification du type de la colonne tmdbId en int')
     # Remplacer les valeurs manquantes par 0 et convertir en entier
     df_links['tmdbId'] = df_links.tmdbId.fillna(0).astype(int)
+
+    # Renommer les colonnes
+    df_links = df_links.rename(columns={'tmdbId': 'tmdbid', 'imdbId': 'imdbid', 'movieId': 'movieid'})
 
     return df_links
 

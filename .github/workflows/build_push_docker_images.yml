@@ -1,0 +1,63 @@
+name: Build and Push Docker Images
+
+on:
+  push:
+    branches:
+      - Antoine
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and push Api image
+        uses: docker/build-push-action@v2
+        with:
+          context: ./docker/fastapi
+          file: ./docker/fastapi/Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/projet_reco_movies:fastapi-latest
+
+      - name: Build and push Python_scrapping image
+        uses: docker/build-push-action@v2
+        with:
+          context: ./docker/python_scrapping
+          file: ./docker/python_scrapping/Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/projet_reco_movies:python-scrapping-latest
+
+      - name: Build and push python_train_models image
+        uses: docker/build-push-action@v2
+        with:
+          context: ./docker/python_train_models
+          file: ./docker/python_train_models/Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/projet_reco_movies:train_models-latest
+
+      - name: Build and push python_transform image
+        uses: docker/build-push-action@v2
+        with:
+          context: ./docker/python_transform
+          file: ./docker/python_transform/Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/projet_reco_movies:python-transform-latest
+
+      - name: Build and push streamlit image
+        uses: docker/build-push-action@v2
+        with:
+          context: ./docker/streamlit
+          file: ./docker/streamlit/Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/projet_reco_movies:streamlit-latest

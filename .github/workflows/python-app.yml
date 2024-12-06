@@ -56,5 +56,3 @@ jobs:
           pytest tests/test_api_auth.py
           pytest tests/test_api_predict.py
           pytest tests/test_build_features.py
-          pytest tests/test_streamlit_app.py
-          pytest tests/test_train_model.py

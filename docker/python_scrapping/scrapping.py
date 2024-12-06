@@ -36,7 +36,7 @@ def load_config():
     }
     return config
 
-def scrape_imdb_first_page(task_instance):
+def scrape_imdb_first_page():
     """Scrape les données des films depuis IMDb et les renvoie sous forme de listes."""
     start_time = time.time()
     headers = {
@@ -53,7 +53,7 @@ def scrape_imdb_first_page(task_instance):
         cleaned_links = [link.split('/')[2].split('?')[0].replace('tt', '') for link in links]
 
         logger.info("Liens IMDB nettoyés: %s", cleaned_links)
-        task_instance.xcom_push(key="cleaned_links", value=cleaned_links)
+        return cleaned_links
 
     except requests.RequestException as e:
         logger.error(f"Erreur lors de la récupération de la page IMDb: {e}")
@@ -63,7 +63,7 @@ def scrape_imdb_first_page(task_instance):
         duration = end_time - start_time
         logger.info(f"Durée du scraping IMDb: {duration} secondes")
 
-def genres_request(task_instance):
+def genres_request():
     """Effectue des requêtes à l'API TMDB pour récupérer les informations des films."""
     url = "https://api.themoviedb.org/3/genre/movie/list?language=en"
     headers = {
@@ -76,15 +76,14 @@ def genres_request(task_instance):
     if response.status_code == 200:
         data = response.json()
         genres = {str(genre["id"]): genre["name"] for genre in data["genres"]}
-        task_instance.xcom_push(key="genres", value=genres)
+        return genres
         logger.info("Genres récupérés avec succès: %s", genres)
 
-def api_tmdb_request(task_instance):
+def api_tmdb_request():
     """Effectue des requêtes à l'API TMDB pour récupérer les informations des films."""
     results = {}
-    cleaned_links = task_instance.xcom_pull(task_ids="scrape_imdb_task", key="cleaned_links")
-    genres = task_instance.xcom_pull(task_ids="get_genres_task", key="genres")
-
+    cleaned_links = scrape_imdb_first_page()
+    genres = genres_request()
     logger.info("Liens nettoyés reçus via XCom: %s", cleaned_links)
 
     for index, movie_id in enumerate(cleaned_links):
@@ -120,12 +119,12 @@ def api_tmdb_request(task_instance):
             else:
                 results[str(index)] = {"error": f"Request failed with status code {response.status_code}"}
 
-        task_instance.xcom_push(key="api_results", value=results)
+        return results
 
-def insert_data_movies(task_instance):
+def insert_data_movies():
     """Insère les données des films dans la base de données en utilisant SQLAlchemy."""
     start_time = time.time()
-    api_results = task_instance.xcom_pull(task_ids="scrape_movies_infos_task", key="api_results")
+    api_results = api_tmdb_request()
 
     config = load_config()  # Charger la configuration de la base de données
     conn_string = f"postgresql://{config['user']}:{config['password']}@{config['host']}/{config['database']}"
@@ -192,3 +191,6 @@ def insert_data_movies(task_instance):
         duration = end_time - start_time
 
         logger.info(f"Durée de l'insertion des données: {duration} secondes")
+
+if __name__ == "__main__":
+    insert_data_movies()

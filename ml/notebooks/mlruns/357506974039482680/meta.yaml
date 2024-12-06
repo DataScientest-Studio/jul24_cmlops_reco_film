@@ -1,6 +1,0 @@
-artifact_location: file:///home/antoine/jul24_cmlops_reco_film/ml/notebooks/mlruns/357506974039482680
-creation_time: 1733157425828
-experiment_id: '357506974039482680'
-last_update_time: 1733157425828
-lifecycle_stage: active
-name: reco_movies
