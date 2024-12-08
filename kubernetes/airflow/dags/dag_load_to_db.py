@@ -2,6 +2,7 @@ from airflow import DAG
 from airflow.utils.dates import days_ago
 from airflow.providers.cncf.kubernetes.operators.pod import KubernetesPodOperator
 from airflow.kubernetes.secret import Secret
+from kubernetes.client import models as k8s
 
 secret_password  = Secret(
   deploy_type="env",
@@ -10,7 +11,7 @@ secret_password  = Secret(
 )
 
 with DAG(
-  dag_id='load_transform_save_db',
+  dag_id='load_to_db',
   tags=['antoine'],
   default_args={
     'owner': 'airflow',
@@ -19,17 +20,28 @@ with DAG(
   catchup=False
 ) as dag:
 
-    python_transform = KubernetesPodOperator(
-    task_id="python_transform",
+    python_load = KubernetesPodOperator(
+    task_id="load_to_db",
     image="antoinepela/projet_reco_movies:python-transform-latest",
-    cmds=["/bin/bash", "-c", "/app/start.sh"],
+    cmds=["python3", "data_to_db.py"],
     namespace= "airflow",
     env_vars={
             'DATABASE': 'postgres',
             'USER': 'postgres',
         },
     secrets= [secret_password],
-    )
+    volumes=[
+        k8s.V1Volume(
+            name="airflow-local-raw-folder",
+            persistent_volume_claim=k8s.V1PersistentVolumeClaimVolumeSource(claim_name="airflow-local-raw-folder")
+        )
+    ],
+    volume_mounts=[
+        k8s.V1VolumeMount(
+            name="airflow-local-raw-folder",
+            mount_path="/raw"
+        )
+    ],
+    ),
 
-
-python_transform
+python_load

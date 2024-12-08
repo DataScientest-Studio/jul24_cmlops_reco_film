@@ -206,10 +206,10 @@ def save_data(df_ratings, df_movies, df_links, df_users, data_directory):
         print(f"Error saving files: {e}")
 
 if __name__ == "__main__":
-    raw_data_relative_path="app/data/to_ingest/bronze"
+    raw_data_relative_path="./raw/bronze"
     bucket_folder_url="https://mlops-project-db.s3.eu-west-1.amazonaws.com/movie_recommandation/"
 
-    data_directory = "app/data/to_ingest/silver"
+    data_directory = "./raw/silver"
 
     download_and_save_file(url=bucket_folder_url, raw_data_relative_path=raw_data_relative_path)
 

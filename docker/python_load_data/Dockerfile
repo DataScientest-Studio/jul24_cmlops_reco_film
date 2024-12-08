@@ -7,16 +7,8 @@ WORKDIR /app
 # Copy the requirements file
 COPY ./requirements.txt ./requirements.txt
 
-COPY ./build_features.py ./build_features.py
-
 COPY ./data_to_db.py ./data_to_db.py
-
-COPY ./start.sh ./start.sh
 
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Make start.sh executable
-RUN chmod +x start.sh
-
-# Command to run your application (if applicable)
-CMD ["./start.sh"]
+CMD ["python", "data_to_db.py"]

@@ -61,7 +61,7 @@ with DAG(
     postgres_conn_id='postgres',
     sql="""
     CREATE TABLE IF NOT EXISTS movies (
-        movieId SERIAL PRIMARY KEY,
+        movieid SERIAL PRIMARY KEY,
         title VARCHAR(200) NOT NULL,
         genres TEXT,
         year INT
@@ -69,8 +69,8 @@ with DAG(
 
     CREATE TABLE IF NOT EXISTS ratings (
         id SERIAL PRIMARY KEY,
-        userId INT,
-        movieId INT REFERENCES movies(movieId),
+        userid INT,
+        movieid INT REFERENCES movies(movieid),
         rating FLOAT NOT NULL,
         timestamp INT,
         bayesian_mean FLOAT NOT NULL
@@ -78,13 +78,13 @@ with DAG(
 
     CREATE TABLE IF NOT EXISTS links (
         id SERIAL PRIMARY KEY,
-        movieId INT REFERENCES movies(movieId),
-        imdbId INT,
-        tmdbId INT
+        movieid INT REFERENCES movies(movieid),
+        imdbid INT,
+        tmdbid INT
     );
 
     CREATE TABLE IF NOT EXISTS users (
-        userId SERIAL PRIMARY KEY,
+        userid SERIAL PRIMARY KEY,
         username VARCHAR(50) NOT NULL,
         email VARCHAR(100) NOT NULL UNIQUE,
         hached_password VARCHAR(300) NOT NULL
